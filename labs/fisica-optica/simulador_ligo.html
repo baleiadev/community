@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Observatório LIGO</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #050505;
+            color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            color: #8a2be2;
+            margin-bottom: 5px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        p.subtitle {
+            color: #8a99ad;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+            max-width: 700px;
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            background-color: #111;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            box-shadow: 0 0 40px rgba(138, 43, 226, 0.2);
+            max-width: 1000px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #222;
+        }
+
+        canvas {
+            background-color: #000;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 320px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        label span {
+            color: #06d6a0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #8a2be2;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        button {
+            padding: 12px;
+            background: #8a2be2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background 0.2s, transform 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: #9d4edd;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.active {
+            background: #f72585;
+            box-shadow: 0 0 15px #f72585;
+        }
+
+        .fabry-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            cursor: pointer;
+        }
+
+        .fabry-toggle input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #06d6a0;
+        }
+
+        .fabry-toggle label {
+            cursor: pointer;
+            font-size: 13px;
+            color: #06d6a0;
+            margin: 0;
+        }
+
+        .detector-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #detectorOutput {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #000 0%, #000 100%);
+            border: 4px solid #333;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 1);
+            transition: 0.05s;
+        }
+
+        .data-readout {
+            font-family: monospace;
+            color: #4cc9f0;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>O Projeto LIGO</h2>
+    <p class="subtitle">Como escutamos o universo esticando e encolhendo usando Lasers e a "Mágica" de Fabry-Perot.</p>
+
+    <div class="container">
+
+        <div class="panel">
+            <div
+                style="color: #94a3b8; font-size: 12px; margin-bottom: 10px; text-transform: uppercase; font-weight: bold;">
+                Malha do Espaço-Tempo & Interferômetro
+            </div>
+            <canvas id="ligoCanvas" width="500" height="400"></canvas>
+            <div class="data-readout" id="strainData">&Delta;L = 0.000000000 m</div>
+        </div>
+
+        <div class="controls panel">
+
+            <button id="btnWave">Disparar Onda Gravitacional</button>
+
+            <div class="control-group" style="margin-top: 15px;">
+                <label>Intensidade do Evento Cósmico <span>(Massa)</span></label>
+                <input type="range" id="waveAmp" min="1" max="10" value="5">
+            </div>
+
+            <hr style="width: 100%; border-color: #333; margin: 15px 0;">
+
+            <div class="control-group">
+                <label>O Truque da Sensibilidade (Melhoria)</label>
+                <div class="fabry-toggle">
+                    <input type="checkbox" id="fabryToggle">
+                    <label for="fabryToggle">Ativar Cavidades Fabry-Perot nos Braços</label>
+                </div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 5px; text-align: justify;">
+                    No LIGO real, a luz não bate e volta uma vez só. Espelhos adicionais fazem a luz quicar ~300 vezes
+                    dentro dos tubos de 4km, acumulando diferença de fase antes de ir para o detector.
+                </div>
+            </div>
+
+            <hr style="width: 100%; border-color: #333; margin: 15px 0;">
+
+            <div class="detector-box">
+                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase; font-weight: bold;">Sinal no
+                    Fotodetector</div>
+                <div id="detectorOutput"></div>
+                <canvas id="signalGraph" width="280" height="80" style="margin-top: 10px;"></canvas>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('ligoCanvas');
+        const ctx = canvas.getContext('2d');
+        const graphCanvas = document.getElementById('signalGraph');
+        const graphCtx = graphCanvas.getContext('2d');
+
+        const btnWave = document.getElementById('btnWave');
+        const ampSlider = document.getElementById('waveAmp');
+        const fabryToggle = document.getElementById('fabryToggle');
+        const detectorOutput = document.getElementById('detectorOutput');
+        const strainData = document.getElementById('strainData');
+
+        let isWaveActive = false;
+        let waveTime = 0;
+        let signalHistory = new Array(280).fill(0); // Para o gráfico
+
+        // Dimensões base
+        const centerX = 150;
+        const centerY = 250;
+        const baseLength = 150; // Tamanho visual dos braços de 4km
+
+        function drawGrid(strainX, strainY) {
+            ctx.strokeStyle = 'rgba(138, 43, 226, 0.15)';
+            ctx.lineWidth = 1;
+
+            let spacing = 20;
+            // Distorce a grade baseado na onda gravitacional
+            for (let i = 0; i < canvas.width; i += spacing) {
+                let xDistortion = (i - centerX) * strainX;
+                ctx.beginPath(); ctx.moveTo(i + xDistortion, 0); ctx.lineTo(i + xDistortion, canvas.height); ctx.stroke();
+            }
+            for (let j = 0; j < canvas.height; j += spacing) {
+                let yDistortion = (j - centerY) * strainY;
+                ctx.beginPath(); ctx.moveTo(0, j + yDistortion); ctx.lineTo(canvas.width, j + yDistortion); ctx.stroke();
+            }
+        }
+
+        function drawSignalGraph() {
+            graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+            graphCtx.strokeStyle = '#06d6a0';
+            graphCtx.lineWidth = 2;
+            graphCtx.beginPath();
+            for (let i = 0; i < signalHistory.length; i++) {
+                let y = graphCanvas.height - (signalHistory[i] * graphCanvas.height);
+                if (i === 0) graphCtx.moveTo(i, y);
+                else graphCtx.lineTo(i, y);
+            }
+            graphCtx.stroke();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let strainX = 0;
+            let strainY = 0;
+            let currentAmp = 0;
+
+            if (isWaveActive) {
+                waveTime += 0.1;
+                let maxAmp = ampSlider.value * 0.01; // Exagero visual para a tela
+
+                // Envelopa a onda para ela entrar e sair suavemente (como o "chirp" de dois buracos negros)
+                let envelope = Math.max(0, Math.sin(waveTime * 0.2));
+                if (waveTime > Math.PI * 5) {
+                    isWaveActive = false; // Desliga após a colisão
+                    btnWave.classList.remove('active');
+                    btnWave.innerText = "Disparar Onda Gravitacional";
+                }
+
+                // A propriedade fundamental das Ondas Gravitacionais: quadripolar. 
+                // Se o eixo X estica, o eixo Y encolhe.
+                currentAmp = maxAmp * envelope * Math.sin(waveTime * 3);
+                strainX = currentAmp;
+                strainY = -currentAmp;
+            } else {
+                waveTime = 0;
+            }
+
+            // 1. Fundo do Espaço-Tempo distorcido
+            drawGrid(strainX, strainY);
+
+            // 2. O Interferômetro LIGO
+            let armX = baseLength * (1 + strainX);
+            let armY = baseLength * (1 + strainY);
+
+            // Tubos de Vácuo (Braços)
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 12;
+            ctx.lineCap = 'round';
+            // Braço Y (Hanford/Livingston indo pra cima)
+            ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(centerX, centerY - armY); ctx.stroke();
+            // Braço X (indo pra direita)
+            ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(centerX + armX, centerY); ctx.stroke();
+
+            // Feixes de Laser (Infravermelho no mundo real, ciano/verde aqui por contraste)
+            ctx.strokeStyle = '#00f5d4';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00f5d4';
+
+            // Laser central -> Splitter
+            ctx.beginPath(); ctx.moveTo(centerX - 80, centerY); ctx.lineTo(centerX, centerY); ctx.stroke();
+
+            // Se Fabry-Perot estiver ativo, desenhamos a luz rebatendo freneticamente
+            if (fabryToggle.checked) {
+                ctx.lineWidth = 4; // Fica mais intenso visualmente
+            }
+
+            // Braço Y (Subindo)
+            ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(centerX, centerY - armY); ctx.stroke();
+            // Braço X (Direita)
+            ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(centerX + armX, centerY); ctx.stroke();
+
+            ctx.shadowBlur = 0; // reset
+
+            // Componentes Físicos
+            // Fonte Laser
+            ctx.fillStyle = '#111'; ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+            ctx.fillRect(centerX - 100, centerY - 15, 30, 30); ctx.strokeRect(centerX - 100, centerY - 15, 30, 30);
+            ctx.fillStyle = '#fff'; ctx.font = '10px Arial'; ctx.fillText("LASER", centerX - 98, centerY + 25);
+
+            // Beam Splitter (Divisor de Feixe) a 45 graus
+            ctx.save();
+            ctx.translate(centerX, centerY); ctx.rotate(Math.PI / 4);
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.8)'; ctx.fillRect(-2, -15, 4, 30);
+            ctx.restore();
+
+            // Espelhos nas pontas (Massas de Teste - Test Mirrors)
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(centerX - 10, centerY - armY - 10, 20, 10); // Espelho Y
+            ctx.fillRect(centerX + armX, centerY - 10, 10, 20);      // Espelho X
+
+            // Se Fabry-Perot ligado, desenha os espelhos de entrada (partially reflecting)
+            if (fabryToggle.checked) {
+                ctx.fillStyle = 'rgba(76, 201, 240, 0.5)';
+                ctx.fillRect(centerX - 10, centerY - 20, 20, 5); // Base Y
+                ctx.fillRect(centerX + 15, centerY - 10, 5, 20); // Base X
+                ctx.fillStyle = '#4cc9f0';
+                ctx.fillText("Fabry-Perot", centerX + 20, centerY - 20);
+            }
+
+            // Detector no fundo
+            ctx.fillStyle = '#222';
+            ctx.fillRect(centerX - 15, centerY + 60, 30, 20);
+            ctx.beginPath(); ctx.arc(centerX, centerY + 60, 5, 0, Math.PI * 2); ctx.fillStyle = '#06d6a0'; ctx.fill();
+
+            // Raio recombinado pro detector
+            ctx.strokeStyle = '#00f5d4'; ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(centerX, centerY + 60); ctx.stroke();
+
+            // --- FÍSICA E MATEMÁTICA DO SINAL ---
+            // A diferença de caminho é L_x - L_y
+            let pathDiff = Math.abs(armX - armY);
+
+            // O Multiplicador Mágico
+            // Se o Fabry-Perot estiver ativo, a luz percorre a diferença de caminho centenas de vezes
+            let bounces = fabryToggle.checked ? 100 : 1;
+
+            let totalPhaseShift = pathDiff * bounces;
+
+            // Intensidade baseada na interferência (0 a 1)
+            let intensity = Math.pow(Math.cos(totalPhaseShift * 0.5), 2);
+
+            // Atualiza o Display do Detector
+            // Converte intensidade para cor/brilho no CSS
+            let brightness = intensity * 255;
+            detectorOutput.style.background = `radial-gradient(circle, rgb(0, ${brightness}, ${brightness * 0.8}) 0%, #000 80%)`;
+
+            // Atualiza os dados de leitura
+            let realStrain = currentAmp * 1e-21; // Escala real da onda gravitacional ~10^-21
+            if (isWaveActive) {
+                strainData.innerText = `Distorção Espacial (h) = ${realStrain.toExponential(2)}`;
+                strainData.style.color = '#f72585';
+            } else {
+                strainData.innerText = `Espaço-Tempo Estável (Ruído Quântico)`;
+                strainData.style.color = '#4cc9f0';
+            }
+
+            // Atualiza gráfico de histórico
+            signalHistory.push(intensity);
+            signalHistory.shift();
+            drawSignalGraph();
+
+            requestAnimationFrame(animate);
+        }
+
+        btnWave.addEventListener('click', () => {
+            if (!isWaveActive) {
+                isWaveActive = true;
+                waveTime = 0;
+                btnWave.classList.add('active');
+                btnWave.innerText = "Colisão Detectada! (Lendo...)";
+            }
+        });
+
+        // Inicia o Loop
+        animate();
+    </script>
+</body>
+
+</html>

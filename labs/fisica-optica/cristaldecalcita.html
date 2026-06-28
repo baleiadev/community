@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Dupla Refração na Calcita</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Lora:ital@0;1&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: #18181b;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .canvas-container {
+            background-color: #f4f4f5;
+            /* Fundo claro para simular papel */
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        canvas {
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #f472b6;
+            margin-bottom: 5px;
+        }
+
+        p.desc {
+            font-size: 0.85rem;
+            color: #a1a1aa;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .control-group {
+            background: #27272a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3f3f46;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #3f3f46;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Toggle Switch para o Polarizador */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #3f3f46;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #f472b6;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .legend {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            background: #1e1e24;
+            padding: 15px;
+            border-radius: 8px;
+            color: #d4d4d8;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="simCanvas" width="450" height="450"></canvas>
+        </div>
+
+        <div class="controls">
+            <div>
+                <h2>Cristal de Calcita</h2>
+                <p class="desc">Gire o cristal para observar o raio extraordinário orbitando o raio ordinário. Ative o
+                    polarizador para bloquear um dos raios.</p>
+            </div>
+
+            <div class="control-group" style="border-left-color: #a78bfa;">
+                <div class="label-row">
+                    <span>Rotação do Cristal</span>
+                    <span id="crystalAngleVal">0°</span>
+                </div>
+                <input type="range" id="crystalAngle" min="0" max="360" value="0">
+            </div>
+
+            <div class="control-group" style="border-left-color: #3b82f6;">
+                <div class="switch-container" style="margin-top: 0; margin-bottom: 15px;">
+                    <span style="font-size: 0.9rem; font-weight: 500;">Filtro Polarizador sobre a Lente</span>
+                    <label class="switch">
+                        <input type="checkbox" id="polarizerToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="label-row" style="opacity: 0.5;" id="polLabelArea">
+                    <span>Ângulo do Polarizador</span>
+                    <span id="polAngleVal">0°</span>
+                </div>
+                <input type="range" id="polAngle" min="0" max="180" value="0" disabled style="opacity: 0.5;">
+            </div>
+
+            <div class="legend">
+                <strong>Explicação Física:</strong><br>
+                • A luz do texto é não polarizada.<br>
+                • O cristal divide a imagem em duas polarizações lineares ortogonais.<br>
+                • Usando o filtro polarizador frontal, você pode isolar a imagem Extraordinária ou a Ordinária
+                rotacionando-o a 90°.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const crystalAngleSlider = document.getElementById('crystalAngle');
+        const polToggle = document.getElementById('polarizerToggle');
+        const polAngleSlider = document.getElementById('polAngle');
+
+        const crystalAngleVal = document.getElementById('crystalAngleVal');
+        const polAngleVal = document.getElementById('polAngleVal');
+        const polLabelArea = document.getElementById('polLabelArea');
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const offsetMag = 25; // Distância de separação da imagem dupla (birefringência)
+
+        // Textos do plano de fundo simulando um livro de óptica
+        function drawBackgroundText() {
+            ctx.fillStyle = "#18181b"; // Cor da tinta no papel
+
+            // Título Gigante
+            ctx.font = "900 80px Inter";
+            ctx.textAlign = "center";
+            ctx.fillText("OPTICS", cx, cy - 20);
+
+            // Texto secundário
+            ctx.font = "italic 18px Lora";
+            ctx.fillText("Calcite is one of the most", cx, cy + 30);
+            ctx.fillText("birefringent materials known.", cx, cy + 55);
+
+            // Algumas fórmulas de fundo
+            ctx.font = "14px Lora";
+            ctx.fillStyle = "#71717a";
+            ctx.fillText("n_o = 1.658", cx - 120, cy + 120);
+            ctx.fillText("n_e = 1.486", cx + 120, cy + 120);
+        }
+
+        // Desenha a forma de um cristal romboédrico
+        function defineCrystalPath(size) {
+            ctx.beginPath();
+            // Um paralelogramo distorcido simulando a clivagem da calcita
+            ctx.moveTo(-size, -size * 0.7);
+            ctx.lineTo(size * 0.8, -size * 0.7);
+            ctx.lineTo(size, size * 0.7);
+            ctx.lineTo(-size * 0.8, size * 0.7);
+            ctx.closePath();
+        }
+
+        function render() {
+            const crystalAngDeg = parseFloat(crystalAngleSlider.value);
+            const crystalAngRad = crystalAngDeg * (Math.PI / 180);
+
+            const polActive = polToggle.checked;
+            const polAngDeg = parseFloat(polAngleSlider.value);
+            const polAngRad = polAngDeg * (Math.PI / 180);
+
+            // Atualizar UI
+            crystalAngleVal.textContent = crystalAngDeg + '°';
+            polAngleVal.textContent = polAngDeg + '°';
+
+            polAngleSlider.disabled = !polActive;
+            polAngleSlider.style.opacity = polActive ? 1 : 0.5;
+            polLabelArea.style.opacity = polActive ? 1 : 0.5;
+
+            // Limpar o Canvas (fundo do papel)
+            ctx.fillStyle = "#f4f4f5";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Desenhar texto normal (fora do cristal)
+            drawBackgroundText();
+
+            // 2. Criar a "Lente" do Cristal
+            ctx.save();
+
+            // Posicionar e rotacionar o cristal
+            ctx.translate(cx, cy);
+            ctx.rotate(crystalAngRad);
+
+            defineCrystalPath(120);
+            ctx.clip(); // Tudo a partir daqui desenha SÓ dentro do cristal
+
+            // Fundo do cristal (vidro fosco / amarelado típico da calcita)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+            ctx.fill();
+
+            // Desfazer a rotação geométrica para desenhar os textos nivelados com o papel
+            ctx.rotate(-crystalAngRad);
+            ctx.translate(-cx, -cy);
+
+            // Lógica do Polarizador e Lei de Malus simplificada
+            // O cristal gera duas polarizações ortogonais. Uma gira com o cristal (e), a outra não (o).
+            // Vamos definir a polarização do raio ordinário a 90° e do extraordinário alinhada com o cristal.
+
+            let intensityO = 1; // Raio Ordinário
+            let intensityE = 1; // Raio Extraordinário
+
+            if (polActive) {
+                // Lei de Malus baseada no ângulo relativo entre o raio e o filtro polarizador
+                // Ordinário fixo (ex: horizontal)
+                intensityO = Math.pow(Math.cos(polAngRad), 2);
+                // Extraordinário gira junto com o cristal (ortogonal ao ordinário no eixo do cristal)
+                intensityE = Math.pow(Math.cos(polAngRad - crystalAngRad - Math.PI / 2), 2);
+            }
+
+            // Desenhar Raio Ordinário (Mantém posição original, apenas perde contraste por causa da refração)
+            if (intensityO > 0.05) {
+                ctx.globalAlpha = intensityO * 0.6; // 0.6 para parecer dentro do cristal
+                drawBackgroundText();
+            }
+
+            // Desenhar Raio Extraordinário (Sofre um desvio espacial baseado no ângulo do cristal)
+            if (intensityE > 0.05) {
+                ctx.globalAlpha = intensityE * 0.6;
+
+                // O vetor de deslocamento do raio extraordinário gira com o cristal
+                const dx = Math.cos(crystalAngRad - Math.PI / 2) * offsetMag;
+                const dy = Math.sin(crystalAngRad - Math.PI / 2) * offsetMag;
+
+                ctx.save();
+                ctx.translate(dx, dy);
+                // Muda levemente a cor para fins didáticos (azul escuro) para diferir do preto puro
+                ctx.fillStyle = "#1e3a8a";
+
+                // Redesenha os textos
+                ctx.font = "900 80px Inter";
+                ctx.textAlign = "center";
+                ctx.fillText("OPTICS", cx, cy - 20);
+                ctx.font = "italic 18px Lora";
+                ctx.fillText("Calcite is one of the most", cx, cy + 30);
+                ctx.fillText("birefringent materials known.", cx, cy + 55);
+                ctx.font = "14px Lora";
+                ctx.fillText("n_o = 1.658", cx - 120, cy + 120);
+                ctx.fillText("n_e = 1.486", cx + 120, cy + 120);
+
+                ctx.restore();
+            }
+
+            ctx.restore(); // Remove o clipping area
+
+            // 3. Desenhar Bordas do Cristal por cima para dar volume
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(crystalAngRad);
+            defineCrystalPath(120);
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.15)";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Eixo Óptico visualizado (linha tracejada sutil)
+            ctx.beginPath();
+            ctx.setLineDash([4, 4]);
+            ctx.moveTo(0, -120);
+            ctx.lineTo(0, 120);
+            ctx.strokeStyle = "rgba(244, 114, 182, 0.4)"; // Rosa combinando com o slide
+            ctx.stroke();
+
+            // Overlay escura se o polarizador estiver ativo
+            if (polActive) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+                ctx.fill();
+
+                // Linhas de grade do polarizador para feedback visual
+                ctx.save();
+                ctx.clip();
+                ctx.rotate(polAngRad - crystalAngRad); // Rotacionar linhas independentes do cristal
+                ctx.beginPath();
+                for (let i = -150; i < 150; i += 8) {
+                    ctx.moveTo(i, -200);
+                    ctx.lineTo(i, 200);
+                }
+                ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                ctx.lineWidth = 1;
+                ctx.setLineDash([]);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        // Event Listeners
+        crystalAngleSlider.addEventListener('input', render);
+        polAngleSlider.addEventListener('input', render);
+        polToggle.addEventListener('change', render);
+
+        // Permitir arrastar o cristal com o mouse pelo Canvas (UX extra)
+        let isDragging = false;
+        canvas.addEventListener('mousedown', () => isDragging = true);
+        window.addEventListener('mouseup', () => isDragging = false);
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left - cx;
+            const mouseY = e.clientY - rect.top - cy;
+            // Calcular angulo baseado na posição do mouse
+            let angle = Math.atan2(mouseY, mouseX) * (180 / Math.PI) + 90;
+            if (angle < 0) angle += 360;
+            crystalAngleSlider.value = angle;
+            render();
+        });
+
+        render();
+    </script>
+
+</body>
+
+</html>

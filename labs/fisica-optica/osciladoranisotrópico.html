@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Modelo Molecular da Birrefringência</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: #18181b;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .canvas-container {
+            background-color: #27272a;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            position: relative;
+        }
+
+        canvas {
+            background-color: #1e1e24;
+            border-radius: 4px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        p.desc {
+            font-size: 0.85rem;
+            color: #a1a1aa;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .control-group {
+            background: #27272a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3f3f46;
+        }
+
+        .control-group.spring-x {
+            border-left-color: #ef4444;
+        }
+
+        .control-group.spring-y {
+            border-left-color: #3b82f6;
+        }
+
+        .control-group.field {
+            border-left-color: #f59e0b;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #3f3f46;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .legend {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            background: #1e1e24;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #d4d4d8;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="simCanvas" width="450" height="450"></canvas>
+        </div>
+
+        <div class="controls">
+            <div>
+                <h2>Oscilador Anisotrópico</h2>
+                <p class="desc">Ajuste as constantes das molas. Observe que, se Kx ≠ Ky, a nuvem de elétrons não oscila
+                    na mesma direção do campo elétrico aplicado (a principal causa da birrefringência).</p>
+            </div>
+
+            <div class="control-group spring-x">
+                <div class="label-row">
+                    <span>Constante da Mola X (Kx)</span>
+                    <span id="kxVal">5</span>
+                </div>
+                <input type="range" id="kxSlider" min="1" max="15" value="5">
+            </div>
+
+            <div class="control-group spring-y">
+                <div class="label-row">
+                    <span>Constante da Mola Y (Ky)</span>
+                    <span id="kyVal">10</span>
+                </div>
+                <input type="range" id="kySlider" min="1" max="15" value="10">
+            </div>
+
+            <div class="control-group field">
+                <div class="label-row">
+                    <span>Ângulo do Campo Elétrico (E)</span>
+                    <span id="angleVal">45°</span>
+                </div>
+                <input type="range" id="angleSlider" min="0" max="360" value="45">
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f59e0b;"></div>
+                    Força do Campo E (Input)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #10b981;"></div>
+                    Eixo de Oscilação Real (Output)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(255,255,255,0.2); border-radius: 50%;"></div>
+                    Nuvem de Elétrons
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Controles
+        const kxSlider = document.getElementById('kxSlider');
+        const kySlider = document.getElementById('kySlider');
+        const angleSlider = document.getElementById('angleSlider');
+
+        const kxVal = document.getElementById('kxVal');
+        const kyVal = document.getElementById('kyVal');
+        const angleVal = document.getElementById('angleVal');
+
+        // Configurações Globais
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        let time = 0;
+        const amplitudeBase = 150; // Força base do campo elétrico
+
+        // Função para desenhar uma mola (zigzag)
+        function drawSpring(startX, startY, endX, endY, constant, color) {
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            // A espessura da linha visualiza a "dureza" da mola
+            ctx.lineWidth = constant;
+
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+
+            const zigzags = 10;
+            const zigzagWidth = 10;
+
+            ctx.save();
+            ctx.translate(startX, startY);
+            ctx.rotate(angle);
+
+            ctx.moveTo(0, 0);
+            let segmentLength = dist / zigzags;
+
+            for (let i = 0; i < zigzags; i++) {
+                let xOffset = segmentLength * (i + 0.5);
+                let yOffset = (i % 2 === 0) ? zigzagWidth : -zigzagWidth;
+
+                // Não faz zigzag muito perto dos limites
+                if (i === 0 || i === zigzags - 1) yOffset = 0;
+
+                ctx.lineTo(xOffset, yOffset);
+            }
+            ctx.lineTo(dist, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Função para desenhar vetor (seta)
+        function drawArrow(fromX, fromY, toX, toY, color) {
+            const headlen = 10;
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const angle = Math.atan2(dy, dx);
+
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.stroke();
+        }
+
+        function render() {
+            // Obter valores
+            const kx = parseFloat(kxSlider.value);
+            const ky = parseFloat(kySlider.value);
+            const angleDeg = parseFloat(angleSlider.value);
+            const angleRad = -angleDeg * (Math.PI / 180); // Negativo para bater com a tela padrão cartesiana
+
+            // Atualizar textos
+            kxVal.textContent = kx;
+            kyVal.textContent = ky;
+            angleVal.textContent = angleDeg + '°';
+
+            // Limpar tela
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Desenhar Eixos X e Y
+            ctx.beginPath();
+            ctx.strokeStyle = '#3f3f46';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); // X
+            ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height); // Y
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Componentes da força do Campo Elétrico (E)
+            const Ex = Math.cos(angleRad) * amplitudeBase;
+            const Ey = Math.sin(angleRad) * amplitudeBase;
+
+            // Física Simplificada: Deslocamento = Força / Constante da Mola
+            // Adicionando um seno para simular a oscilação da onda com o tempo
+            const osc = Math.sin(time);
+
+            const displacementX = (Ex / kx) * osc;
+            const displacementY = (Ey / ky) * osc;
+
+            const electronX = cx + displacementX;
+            const electronY = cy + displacementY;
+
+            // Linha guia do eixo de oscilação real (Rastro Verde)
+            const maxDispX = (Ex / kx);
+            const maxDispY = (Ey / ky);
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.3)'; // Verde transparente
+            ctx.lineWidth = 2;
+            ctx.moveTo(cx - maxDispX, cy - maxDispY);
+            ctx.lineTo(cx + maxDispX, cy + maxDispY);
+            ctx.stroke();
+
+            // Molas X (Vermelhas)
+            drawSpring(cx - 200, cy, electronX, electronY, kx, 'rgba(239, 68, 68, 0.7)'); // Esquerda
+            drawSpring(cx + 200, cy, electronX, electronY, kx, 'rgba(239, 68, 68, 0.7)'); // Direita
+
+            // Molas Y (Azuis)
+            drawSpring(cx, cy - 200, electronX, electronY, ky, 'rgba(59, 130, 246, 0.7)'); // Cima
+            drawSpring(cx, cy + 200, electronX, electronY, ky, 'rgba(59, 130, 246, 0.7)'); // Baixo
+
+            // Núcleo Positivo (Fixo)
+            ctx.beginPath();
+            ctx.fillStyle = '#ffffff';
+            ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('+', cx, cy);
+
+            // Nuvem de Elétrons (Oscilando)
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.arc(electronX, electronY, 40, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.fillStyle = '#ffffff';
+            ctx.arc(electronX, electronY, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Vetor do Campo Elétrico E (Direção de Input)
+            // Escalado pelo oscilador para mostrar o E empurrando e puxando
+            drawArrow(cx, cy, cx + Ex * osc, cy + Ey * osc, '#f59e0b');
+
+            // Vetor de Oscilação Real (Verde)
+            drawArrow(cx, cy, electronX, electronY, '#10b981');
+
+            // Avançar o tempo da animação
+            time += 0.05;
+            requestAnimationFrame(render);
+        }
+
+        // Iniciar animação
+        render();
+    </script>
+
+</body>
+
+</html>

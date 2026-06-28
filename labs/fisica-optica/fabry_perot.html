@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Interferômetro Fabry-Perot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0f19;
+            color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            color: #4cc9f0;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        p.subtitle {
+            color: #8a99ad;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+            max-width: 700px;
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background-color: #161c2a;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #232d42;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .panel-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #0d121f;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+            flex: 1;
+            min-width: 400px;
+        }
+
+        canvas {
+            background-color: #070a12;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: #0d121f;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        label span {
+            color: #ffb703;
+            font-family: monospace;
+            font-size: 15px;
+            background: #1e293b;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #2e394e;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4cc9f0;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #f72585;
+            transform: scale(1.1);
+        }
+
+        .panel-title {
+            font-size: 13px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .explanation-box {
+            background: rgba(76, 201, 240, 0.1);
+            border-left: 4px solid #4cc9f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        .highlight {
+            color: #f72585;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>O "Filtro Mágico" (Etalon de Fabry-Perot)</h2>
+    <p class="subtitle">Descubra por que duas lâminas de microscópio normais não funcionam, mas duas lâminas espelhadas
+        criam um selecionador de cores perfeito.</p>
+
+    <div class="container">
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Refletividade das Lâminas (R) <span id="r-val">4% (Vidro Comum)</span></label>
+                <input type="range" id="reflectivity" min="0.04" max="0.99" value="0.04" step="0.01">
+            </div>
+
+            <div class="control-group">
+                <label>Distância entre as Lâminas (d) <span id="d-val">2.50 &mu;m</span></label>
+                <input type="range" id="distance" min="1.0" max="5.0" value="2.5" step="0.01">
+            </div>
+        </div>
+
+        <div class="panel-row">
+            <div class="canvas-container">
+                <div class="panel-title">Como a luz bate lá dentro</div>
+                <canvas id="rayCanvas" width="450" height="250"></canvas>
+            </div>
+
+            <div class="canvas-container">
+                <div class="panel-title">Gráfico: O que consegue atravessar?</div>
+                <canvas id="graphCanvas" width="450" height="250"></canvas>
+            </div>
+        </div>
+
+        <div class="explanation-box" id="feedbackText">
+            Mova os controles acima para ver a física acontecer.
+        </div>
+
+    </div>
+
+    <script>
+        const rayCtx = document.getElementById('rayCanvas').getContext('2d');
+        const graphCtx = document.getElementById('graphCanvas').getContext('2d');
+
+        const rSlider = document.getElementById('reflectivity');
+        const dSlider = document.getElementById('distance');
+        const rVal = document.getElementById('r-val');
+        const dVal = document.getElementById('d-val');
+        const feedbackText = document.getElementById('feedbackText');
+
+        // Função de cor visual
+        function getRainbowGradient(ctx, width) {
+            let gradient = ctx.createLinearGradient(0, 0, width, 0);
+            gradient.addColorStop(0, "rgb(138, 43, 226)");  // Violeta (~400nm)
+            gradient.addColorStop(0.2, "rgb(0, 0, 255)");   // Azul
+            gradient.addColorStop(0.4, "rgb(0, 255, 0)");   // Verde
+            gradient.addColorStop(0.6, "rgb(255, 255, 0)"); // Amarelo
+            gradient.addColorStop(0.8, "rgb(255, 127, 0)"); // Laranja
+            gradient.addColorStop(1, "rgb(255, 0, 0)");     // Vermelho (~700nm)
+            return gradient;
+        }
+
+        function drawRayDiagram(R) {
+            let w = rayCtx.canvas.width;
+            let h = rayCtx.canvas.height;
+            rayCtx.clearRect(0, 0, w, h);
+
+            let plate1X = 150;
+            let plate2X = 300;
+            let plateThickness = 15;
+
+            // Desenhar Lâminas
+            rayCtx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            rayCtx.strokeStyle = '#94a3b8';
+            rayCtx.fillRect(plate1X - plateThickness, 20, plateThickness, h - 40);
+            rayCtx.strokeRect(plate1X - plateThickness, 20, plateThickness, h - 40);
+
+            rayCtx.fillRect(plate2X, 20, plateThickness, h - 40);
+            rayCtx.strokeRect(plate2X, 20, plateThickness, h - 40);
+
+            // Revestimento refletivo (fica mais brilhante quanto maior o R)
+            rayCtx.fillStyle = `rgba(76, 201, 240, ${R})`;
+            rayCtx.fillRect(plate1X, 20, 3, h - 40); // Face interna 1
+            rayCtx.fillRect(plate2X - 3, 20, 3, h - 40); // Face interna 2
+
+            // Desenhar os Raios (Luz Branca Incidente)
+            let startY = 40;
+            let angle = 0.15; // Ângulo fixo visual para os raios não se sobreporem
+            let bounceWidth = plate2X - plate1X;
+            let bounceDrop = bounceWidth * Math.tan(angle);
+
+            // Raio de entrada
+            rayCtx.strokeStyle = '#ffffff';
+            rayCtx.lineWidth = 2;
+            rayCtx.beginPath();
+            rayCtx.moveTo(20, startY - (plate1X - 20) * Math.tan(angle));
+            rayCtx.lineTo(plate1X, startY);
+            rayCtx.stroke();
+
+            // Múltiplos Bounces
+            let currentX = plate1X;
+            let currentY = startY;
+            let currentIntensity = 1.0;
+            let numBounces = 20;
+
+            for (let i = 0; i < numBounces; i++) {
+                if (currentIntensity < 0.01) break; // Para de desenhar se ficar muito fraco
+
+                let nextX = (i % 2 === 0) ? plate2X : plate1X;
+                let nextY = currentY + bounceDrop;
+
+                // Desenha a linha interna (branca)
+                rayCtx.strokeStyle = `rgba(255, 255, 255, ${currentIntensity})`;
+                rayCtx.beginPath();
+                rayCtx.moveTo(currentX, currentY);
+                rayCtx.lineTo(nextX, nextY);
+                rayCtx.stroke();
+
+                // Desenha o raio que vaza/transmite
+                if (i % 2 === 0) {
+                    // Raio transmitido (direita)
+                    let transmitIntensity = currentIntensity * (1 - R);
+                    if (transmitIntensity > 0.02) { // Só desenha se for visível
+                        rayCtx.strokeStyle = `rgba(76, 201, 240, ${transmitIntensity})`;
+                        rayCtx.beginPath();
+                        rayCtx.moveTo(plate2X + plateThickness, nextY + (plateThickness * Math.tan(angle)));
+                        rayCtx.lineTo(w, nextY + ((w - plate2X) * Math.tan(angle)));
+                        rayCtx.stroke();
+                    }
+                    currentIntensity *= R; // O que sobra volta pra dentro
+                } else {
+                    currentIntensity *= R; // Bateu na esquerda, reflete
+                }
+
+                currentX = nextX;
+                currentY = nextY;
+            }
+
+            rayCtx.fillStyle = '#cbd5e1';
+            rayCtx.font = '11px sans-serif';
+            rayCtx.fillText("Lâmina 1", plate1X - 45, h - 5);
+            rayCtx.fillText("Lâmina 2", plate2X + 5, h - 5);
+            rayCtx.fillText("Espaço (d)", 205, h - 5);
+        }
+
+        function drawGraph(d_um, R) {
+            let w = graphCtx.canvas.width;
+            let h = graphCtx.canvas.height;
+            graphCtx.clearRect(0, 0, w, h);
+
+            // Desenhar Eixos
+            let padding = 40;
+            let plotW = w - padding - 20;
+            let plotH = h - padding - 20;
+
+            graphCtx.strokeStyle = '#475569';
+            graphCtx.lineWidth = 1;
+            graphCtx.beginPath();
+            graphCtx.moveTo(padding, 20); graphCtx.lineTo(padding, 20 + plotH); // Eixo Y
+            graphCtx.lineTo(padding + plotW, 20 + plotH); // Eixo X
+            graphCtx.stroke();
+
+            // Labels Eixos
+            graphCtx.fillStyle = '#94a3b8';
+            graphCtx.font = '10px sans-serif';
+            graphCtx.fillText("1.0 -", padding - 25, 25);
+            graphCtx.fillText("0.5 -", padding - 25, 20 + plotH / 2);
+            graphCtx.fillText("0.0 -", padding - 25, 20 + plotH);
+
+            graphCtx.fillText("400nm (Azul)", padding, h - 10);
+            graphCtx.fillText("700nm (Vermelho)", w - 100, h - 10);
+
+            graphCtx.save();
+            graphCtx.translate(12, h / 2 + 30);
+            graphCtx.rotate(-Math.PI / 2);
+            graphCtx.fillText("Transmissão (T)", 0, 0);
+            graphCtx.restore();
+
+            // Matemática Fabry-Perot (Função de Airy)
+            // T = 1 / [1 + F * sin^2(delta / 2)]
+            // delta = (4 * pi * n * d) / lambda  (assumindo theta = 0, n=1 pro ar)
+
+            let F = (4 * R) / Math.pow(1 - R, 2); // Coeficiente de Finesse
+            let d_nm = d_um * 1000; // Converte micrômetros para nanômetros
+
+            graphCtx.lineWidth = 2;
+            graphCtx.strokeStyle = getRainbowGradient(graphCtx, w);
+            graphCtx.beginPath();
+
+            let first = true;
+            for (let x = 0; x <= plotW; x++) {
+                // Mapeia X para Wavelength (400 a 700 nm)
+                let lambda = 400 + (x / plotW) * 300;
+
+                let delta = (4 * Math.PI * d_nm) / lambda;
+                let sinSq = Math.pow(Math.sin(delta / 2), 2);
+                let T = 1 / (1 + F * sinSq); // Transmissão (0 a 1)
+
+                let plotX = padding + x;
+                let plotY = 20 + plotH - (T * plotH);
+
+                if (first) { graphCtx.moveTo(plotX, plotY); first = false; }
+                else { graphCtx.lineTo(plotX, plotY); }
+            }
+            graphCtx.stroke();
+
+            // Desenhar um preenchimento sutil embaixo da curva
+            graphCtx.lineTo(padding + plotW, 20 + plotH);
+            graphCtx.lineTo(padding, 20 + plotH);
+            graphCtx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            graphCtx.fill();
+        }
+
+        function updateUI() {
+            let R = parseFloat(rSlider.value);
+            let d = parseFloat(dSlider.value);
+
+            if (R < 0.1) rVal.innerText = (R * 100).toFixed(0) + "% (Vidro Comum)";
+            else if (R > 0.9) rVal.innerText = (R * 100).toFixed(0) + "% (Espelho Laser)";
+            else rVal.innerText = (R * 100).toFixed(0) + "%";
+
+            dVal.innerText = d.toFixed(2) + " μm";
+
+            // Atualiza Texto de Feedback
+            if (R < 0.2) {
+                feedbackText.innerHTML = "Com lâminas normais (R baixo), a luz vaza logo de cara. O gráfico da direita mostra que <span class='highlight'>todas as cores passam</span> (linha quase reta no topo). Não serve como filtro.";
+            } else if (R > 0.8) {
+                feedbackText.innerHTML = "Com espelhos excelentes (R alto), a luz fica presa batendo muitas vezes. Só as cores que têm ressonância perfeita conseguem 'furar' o espelho. O gráfico mostra <span class='highlight'>picos afiadíssimos</span>. Você criou um filtro ótico profissional!";
+            } else {
+                feedbackText.innerHTML = "Aumentando a refletividade, as ondas começam a interferir mais vezes. Os picos de transmissão (gráfico à direita) começam a se formar como colinas, separando algumas cores de outras.";
+            }
+
+            drawRayDiagram(R);
+            drawGraph(d, R);
+        }
+
+        rSlider.addEventListener('input', updateUI);
+        dSlider.addEventListener('input', updateUI);
+
+        // Inicializar
+        updateUI();
+    </script>
+</body>
+
+</html>

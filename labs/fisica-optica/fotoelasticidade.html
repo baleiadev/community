@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Fotoelasticidade e Birrefringência</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: #18181b;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .canvas-wrapper {
+            background-color: #000;
+            /* Fundo base escuro */
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border: 2px solid #3f3f46;
+            transition: background-color 0.3s;
+        }
+
+        /* Fundo branco quando polarizadores estão paralelos */
+        .canvas-wrapper.parallel {
+            background-color: #ffffff;
+            border-color: #e4e4e7;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            filter: drop-shadow(0px 10px 15px rgba(0, 0, 0, 0.5));
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #38bdf8;
+            margin-bottom: 5px;
+        }
+
+        p.desc {
+            font-size: 0.85rem;
+            color: #a1a1aa;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .control-group {
+            background: #27272a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #38bdf8;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #3f3f46;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Segmented Control para os Polarizadores */
+        .segmented-control {
+            display: flex;
+            background: #3f3f46;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .segmented-control input[type="radio"] {
+            display: none;
+        }
+
+        .segmented-control label {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #a1a1aa;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .segmented-control input[type="radio"]:checked+label {
+            background: #38bdf8;
+            color: #0f172a;
+        }
+
+        .info-box {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #e0e7ff;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="canvas-wrapper" id="canvasWrapper">
+            <canvas id="simCanvas" width="450" height="350"></canvas>
+        </div>
+
+        <div class="controls">
+            <div>
+                <h2>Fotoelasticidade</h2>
+                <p class="desc">Birrefringência induzida por tensão. Observe a formação das franjas isocromáticas em
+                    cores.</p>
+            </div>
+
+            <div class="control-group">
+                <div class="label-row">
+                    <span>Estado dos Polarizadores</span>
+                </div>
+                <div class="segmented-control">
+                    <input type="radio" id="polCrossed" name="polarizer" value="crossed" checked>
+                    <label for="polCrossed">Cruzados (Dark Field)</label>
+
+                    <input type="radio" id="polParallel" name="polarizer" value="parallel">
+                    <label for="polParallel">Paralelos (Light Field)</label>
+                </div>
+            </div>
+
+            <div class="control-group" style="border-left-color: #f43f5e;">
+                <div class="label-row">
+                    <span>Força Aplicada (Tensão)</span>
+                    <span id="stressVal">0%</span>
+                </div>
+                <input type="range" id="stressSlider" min="0" max="100" value="0">
+            </div>
+
+            <div class="info-box" id="infoText">
+                <strong>Polarizadores Cruzados:</strong> Sem tensão, a luz é totalmente bloqueada (preto). Ao aplicar
+                força, o acrílico torna-se birrefringente e rotaciona a luz, permitindo que as cores do espectro passem.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const wrapper = document.getElementById('canvasWrapper');
+
+        const stressSlider = document.getElementById('stressSlider');
+        const stressValText = document.getElementById('stressVal');
+        const radioCrossed = document.getElementById('polCrossed');
+        const radioParallel = document.getElementById('polParallel');
+        const infoText = document.getElementById('infoText');
+
+        // Tabela de Cores simplificada de Michelson-Levy (Atraso de Fase -> Cor)
+        // Cores que aparecem à medida que a tensão (e a birrefringência) aumenta
+        const colorSequenceCrossed = [
+            "rgba(0,0,0,1)",        // 0: Preto (Extinção)
+            "rgba(100,100,100,1)",  // Cinza
+            "rgba(255,255,255,1)",  // Branco
+            "rgba(255,255,0,1)",    // Amarelo
+            "rgba(255,0,0,1)",      // Vermelho
+            "rgba(0,0,255,1)",      // Azul
+            "rgba(0,255,0,1)",      // Verde
+            "rgba(255,255,0,1)",    // Amarelo (2ª Ordem)
+            "rgba(255,0,255,1)",    // Magenta
+            "rgba(0,255,150,1)"     // Ciano pálido
+        ];
+
+        // Para polarizadores paralelos, as cores são essencialmente complementares
+        const colorSequenceParallel = [
+            "rgba(255,255,255,1)",  // 0: Branco (Transmissão total)
+            "rgba(255,255,0,1)",    // Amarelo pálido
+            "rgba(255,100,0,1)",    // Laranja
+            "rgba(150,0,150,1)",    // Roxo escuro
+            "rgba(0,100,255,1)",    // Azul vibrante
+            "rgba(0,255,0,1)",      // Verde
+            "rgba(255,150,150,1)",  // Rosa
+            "rgba(100,255,255,1)"   // Ciano
+        ];
+
+        // Caminho para desenhar um "Esquadro" (Triângulo vazado)
+        function drawSetSquarePath(ctx) {
+            // Triângulo Externo
+            ctx.moveTo(50, 300);
+            ctx.lineTo(400, 300);
+            ctx.lineTo(50, 50);
+            ctx.closePath();
+
+            // Triângulo Interno (Furo - Desenhado no sentido oposto para vazar)
+            ctx.moveTo(90, 260);
+            ctx.lineTo(90, 130);
+            ctx.lineTo(270, 260);
+            ctx.closePath();
+
+            // Um furo circular típico de esquadros no canto inferior esquerdo
+            ctx.moveTo(85, 275);
+            ctx.arc(75, 275, 10, 0, Math.PI * 2, true);
+            ctx.closePath();
+        }
+
+        function render() {
+            const stress = parseInt(stressSlider.value);
+            const isCrossed = radioCrossed.checked;
+
+            // Atualizar interface
+            stressValText.textContent = stress + '%';
+            wrapper.className = isCrossed ? 'canvas-wrapper' : 'canvas-wrapper parallel';
+
+            if (isCrossed) {
+                infoText.innerHTML = "<strong>Polarizadores Cruzados:</strong> Sem tensão, a luz é totalmente bloqueada (preto). Ao aplicar força, o acrílico torna-se birrefringente, alterando o estado de polarização da luz branca e gerando faixas coloridas vibrantes.";
+            } else {
+                infoText.innerHTML = "<strong>Polarizadores Paralelos:</strong> Sem tensão, a luz passa livremente (branco). A tensão gera atrasos de fase que causam interferência destrutiva para certas cores, criando um padrão complementar ao modo cruzado.";
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Criar o caminho do Esquadro
+            ctx.beginPath();
+            drawSetSquarePath(ctx);
+
+            // 2. Gerar o Padrão de Fatores de Tensão (Cores)
+            // Usamos um gradiente radial focado no canto interno do esquadro, 
+            // que é onde a concentração de tensão estrutural é mais intensa.
+            const focusX = 90;
+            const focusY = 260; // Ponto de máxima tensão (canto interno 90 graus)
+
+            // O raio máximo do gradiente diminui conforme a tensão aumenta, 
+            // "espremendo" mais franjas no mesmo espaço
+            const maxRadius = 400 - (stress * 2.5);
+
+            // Evitar erro se o raio for muito pequeno ou negativo
+            const safeRadius = Math.max(50, maxRadius);
+
+            const gradient = ctx.createRadialGradient(focusX, focusY, 0, focusX, focusY, safeRadius);
+
+            const palette = isCrossed ? colorSequenceCrossed : colorSequenceParallel;
+
+            // Distribuição das cores baseada na "tensão". 
+            // Se a tensão é 0, preenchemos tudo com a cor inicial (Preto ou Branco)
+            if (stress === 0) {
+                gradient.addColorStop(0, palette[0]);
+                gradient.addColorStop(1, palette[0]);
+            } else {
+                // Cria múltiplas franjas baseadas na porcentagem de tensão
+                const numFringes = Math.max(2, Math.floor(stress / 10));
+                const colorStopsCount = Math.min(palette.length, numFringes);
+
+                for (let i = 0; i < colorStopsCount; i++) {
+                    // Distribuir os stops. Inverter a ordem para que o centro (maior tensão) 
+                    // tenha as cores mais avançadas do espectro.
+                    let position = i / (colorStopsCount - 1);
+                    let colorIndex = (colorStopsCount - 1) - i;
+                    gradient.addColorStop(position, palette[colorIndex]);
+                }
+            }
+
+            // 3. Aplicar o preenchimento e estilos
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // 4. Desenhar uma borda sutil para definir a forma do plástico
+            ctx.strokeStyle = isCrossed ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.3)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Event Listeners
+        stressSlider.addEventListener('input', render);
+        radioCrossed.addEventListener('change', render);
+        radioParallel.addEventListener('change', render);
+
+        // Render Inicial
+        render();
+    </script>
+
+</body>
+
+</html>

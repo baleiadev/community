@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lei de Malus - Simulador Dark Mode</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: #18181b;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Topo: Visualização da Onda e Filtros */
+        .visualization-area {
+            position: relative;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 0 40px;
+        }
+
+        .filter-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            z-index: 2;
+        }
+
+        .filter-label-top {
+            font-size: 0.75rem;
+            color: #a1a1aa;
+            background: #27272a;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .filter {
+            width: 30px;
+            height: 100px;
+            border: 2px solid #e4e4e7;
+            background-color: rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .filter-lines {
+            width: 200%;
+            height: 200%;
+            background-image: repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 4px,
+                    rgba(255, 255, 255, 0.6) 4px,
+                    rgba(255, 255, 255, 0.6) 6px);
+            transform-origin: center;
+            transition: transform 0.1s ease-out;
+        }
+
+        .filter-label-bottom {
+            font-size: 0.8rem;
+            color: #d4d4d8;
+        }
+
+        .wave-svg {
+            position: absolute;
+            left: 55px;
+            right: 55px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: calc(100% - 110px);
+            height: 100px;
+            z-index: 1;
+        }
+
+        /* Legenda */
+        .legend-tags {
+            display: flex;
+            gap: 15px;
+            background: #27272a;
+            width: fit-content;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot.blue {
+            background-color: #5c7cfa;
+        }
+
+        .dot.white {
+            background-color: #ffffff;
+        }
+
+        /* Gráfico */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        /* Controles Inferiores */
+        .bottom-controls {
+            border-top: 1px solid #3f3f46;
+            padding-top: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .intensity-display {
+            text-align: center;
+        }
+
+        .intensity-display span {
+            display: block;
+            color: #a1a1aa;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .intensity-display strong {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            gap: 20px;
+        }
+
+        .slider-label {
+            color: #d4d4d8;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .slider-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #3f3f46;
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 24px;
+            background: #ffffff;
+            border-radius: 2px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .angle-box {
+            background: #27272a;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            min-width: 60px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="visualization-area">
+            <div class="filter-container">
+                <div class="filter-label-top">0° (Fixo)</div>
+                <div class="filter">
+                    <div class="filter-lines" style="transform: rotate(0deg);"></div>
+                </div>
+                <div class="filter-label-bottom">Polarizador</div>
+            </div>
+
+            <svg class="wave-svg" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <defs>
+                    <linearGradient id="fade" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#5c7cfa" stop-opacity="0" />
+                        <stop offset="20%" stop-color="#5c7cfa" stop-opacity="1" />
+                    </linearGradient>
+                </defs>
+                <path d="M0,50 Q10,10 20,50 T40,50 T60,50 T80,50 T100,50" fill="none" stroke="url(#fade)"
+                    stroke-width="1.5" id="lightWavePath" />
+            </svg>
+
+            <div class="filter-container">
+                <div class="filter-label-top" id="analyzerLabelTop">207°</div>
+                <div class="filter">
+                    <div class="filter-lines" id="analyzerLines"></div>
+                </div>
+                <div class="filter-label-bottom">Analisador</div>
+            </div>
+        </div>
+
+        <div class="legend-tags">
+            <div class="legend-item">
+                <div class="dot blue"></div> Luz Polarizada
+            </div>
+            <div class="legend-item">
+                <div class="dot white"></div> Filtros Polarizadores
+            </div>
+        </div>
+
+        <div style="color: #a1a1aa; font-size: 0.85rem; margin-bottom: 10px;">Intensidade (%) ↑</div>
+        <div class="chart-container">
+            <canvas id="malusChart"></canvas>
+        </div>
+
+        <div class="bottom-controls">
+            <div class="intensity-display">
+                <span>Intensidade (I)</span>
+                <strong id="intensityText">79.4%</strong>
+            </div>
+
+            <div class="slider-wrapper">
+                <div class="slider-label">Ângulo do Analisador (°)</div>
+                <div class="slider-container">
+                    <input type="range" id="angleSlider" min="0" max="360" value="207">
+                </div>
+                <div class="angle-box" id="angleBoxText">207</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Referências DOM
+        const slider = document.getElementById('angleSlider');
+        const intensityText = document.getElementById('intensityText');
+        const angleBoxText = document.getElementById('angleBoxText');
+        const analyzerLines = document.getElementById('analyzerLines');
+        const analyzerLabelTop = document.getElementById('analyzerLabelTop');
+        const wavePath = document.getElementById('lightWavePath');
+
+        // Gera os pontos da onda SVG dinamicamente para parecer uma senóide contínua
+        function drawWave() {
+            let path = "M0,50 ";
+            for (let i = 0; i <= 100; i += 2) {
+                let y = 50 - Math.sin(i * 0.2) * 40;
+                path += `L${i},${y} `;
+            }
+            wavePath.setAttribute("d", path);
+        }
+        drawWave();
+
+        // Plugin Customizado Chart.js para desenhar a linha vertical tracejada
+        const verticalLinePlugin = {
+            id: 'verticalLine',
+            afterDraw: chart => {
+                const point = chart.getDatasetMeta(1).data[0];
+                if (point) {
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(point.x, point.y);
+                    ctx.lineTo(point.x, chart.scales.y.bottom);
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = '#a1a1aa';
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+
+                    // Texto flutuante acima do ponto
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '12px Inter';
+                    ctx.textAlign = 'center';
+                    const intensityVal = chart.data.datasets[1].data[0].y;
+                    ctx.fillText(intensityVal.toFixed(0) + '%', point.x, point.y - 12);
+                    ctx.restore();
+                }
+            }
+        };
+
+        // Preparar dados da Curva Teórica (cos²θ)
+        const curveData = [];
+        for (let a = 0; a <= 360; a += 1) {
+            curveData.push({ x: a, y: Math.pow(Math.cos(a * Math.PI / 180), 2) * 100 });
+        }
+
+        // Inicializar Gráfico
+        const ctx = document.getElementById('malusChart').getContext('2d');
+        const malusChart = new Chart(ctx, {
+            type: 'line',
+            plugins: [verticalLinePlugin],
+            data: {
+                datasets: [
+                    {
+                        label: 'Curva',
+                        data: curveData,
+                        borderColor: '#3b82f6', // Azul claro
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Ponto',
+                        data: [{ x: 207, y: 79.4 }],
+                        backgroundColor: '#fca5a5', // Rosa claro
+                        borderColor: '#fca5a5',
+                        pointRadius: 6,
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 20 } },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: 0, max: 360,
+                        grid: { color: '#27272a', drawBorder: false },
+                        ticks: { color: '#a1a1aa', stepSize: 90, font: { family: 'Inter' } }
+                    },
+                    y: {
+                        min: 0, max: 100,
+                        grid: { color: '#27272a', drawBorder: false },
+                        ticks: { color: '#a1a1aa', stepSize: 20, font: { family: 'Inter' } }
+                    }
+                }
+            }
+        });
+
+        // Atualização do sistema
+        function updateSystem() {
+            const angle = parseInt(slider.value);
+            const rad = angle * (Math.PI / 180);
+            const intensity = Math.pow(Math.cos(rad), 2) * 100;
+
+            // Atualizar Textos
+            intensityText.textContent = intensity.toFixed(1) + '%';
+            angleBoxText.textContent = angle;
+            analyzerLabelTop.textContent = angle + '°';
+
+            // Rotacionar linhas internas do filtro Analisador
+            // A rotação visual no DOM acompanha o ângulo escolhido
+            analyzerLines.style.transform = `rotate(${angle}deg)`;
+
+            // Atenuar a onda SVG conforme a intensidade cai
+            const opacity = Math.max(0.1, intensity / 100);
+            wavePath.style.opacity = opacity;
+
+            // Atualizar Gráfico
+            malusChart.data.datasets[1].data = [{ x: angle, y: intensity }];
+            malusChart.update('none');
+        }
+
+        slider.addEventListener('input', updateSystem);
+
+        // Set initial state
+        updateSystem();
+    </script>
+
+</body>
+
+</html>

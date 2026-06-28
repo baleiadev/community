@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulação de Reflexão de Cor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0b0f19;
+            color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        h2 {
+            color: #4cc9f0;
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            color: #8a99ad;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .container {
+            background-color: #161c2a;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            border: 1px solid #232d42;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            background: #070a12;
+            border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 40px;
+            background: #0d121f;
+            padding: 15px 30px;
+            border-radius: 8px;
+            border: 1px solid #232d42;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        select {
+            padding: 10px;
+            background: #2e394e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        select:hover {
+            background: #3b4863;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 15px;
+            background: #0d121f;
+            padding: 15px;
+            border-radius: 8px;
+            min-width: 400px;
+            text-align: center;
+            border-left: 4px solid #4cc9f0;
+        }
+
+        .highlight {
+            color: #ffb703;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Simulador de Reflexão de Cor</h2>
+    <p class="subtitle">Veja como diferentes superfícies absorvem e refletem as frequências da luz.</p>
+
+    <div class="container">
+        <canvas id="simCanvas" width="600" height="400"></canvas>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Cor da Luz Incidente (Laser):</label>
+                <select id="lightColor">
+                    <option value="255,255,255" data-name="Branca">Luz Branca (Todas as cores)</option>
+                    <option value="255,0,0" data-name="Vermelha">Luz Vermelha</option>
+                    <option value="0,255,0" data-name="Verde">Luz Verde</option>
+                    <option value="0,0,255" data-name="Azul" selected>Luz Azul</option>
+                    <option value="255,255,0" data-name="Amarela">Luz Amarela (Vermelho + Verde)</option>
+                    <option value="0,255,255" data-name="Ciano">Luz Ciano (Verde + Azul)</option>
+                    <option value="255,0,255" data-name="Magenta">Luz Magenta (Vermelho + Azul)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Cor da Superfície (Filtro):</label>
+                <select id="surfaceColor">
+                    <option value="255,255,255" data-name="Branca">Branca (Reflete tudo)</option>
+                    <option value="255,0,0" data-name="Vermelha">Vermelha (Absorve Verde/Azul)</option>
+                    <option value="0,255,0" data-name="Verde">Verde (Absorve Vermelho/Azul)</option>
+                    <option value="0,0,255" data-name="Azul">Azul (Absorve Vermelho/Verde)</option>
+                    <option value="255,255,0" data-name="Amarela" selected>Amarela (Absorve Azul)</option>
+                    <option value="0,255,255" data-name="Ciano">Ciano (Absorve Vermelho)</option>
+                    <option value="255,0,255" data-name="Magenta">Magenta (Absorve Verde)</option>
+                    <option value="0,0,0" data-name="Preta">Preta (Absorve tudo)</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="result">Selecione as cores para ver o resultado da física.</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const lightSelect = document.getElementById('lightColor');
+        const surfaceSelect = document.getElementById('surfaceColor');
+        const resultDiv = document.getElementById('result');
+
+        function updateSimulation() {
+            // Pegar os valores RGB (0 a 255)
+            const lightRGB = lightSelect.value.split(',').map(Number);
+            const surfaceRGB = surfaceSelect.value.split(',').map(Number);
+
+            const lightName = lightSelect.options[lightSelect.selectedIndex].getAttribute('data-name');
+            const surfaceName = surfaceSelect.options[surfaceSelect.selectedIndex].getAttribute('data-name');
+
+            // A MÁGICA DA FÍSICA: A superfície atua como um filtro multiplicativo
+            // Fórmula: Refletida = Luz * (Superfície / 255)
+            const refR = Math.round((lightRGB[0]) * (surfaceRGB[0] / 255));
+            const refG = Math.round((lightRGB[1]) * (surfaceRGB[1] / 255));
+            const refB = Math.round((lightRGB[2]) * (surfaceRGB[2] / 255));
+
+            const lightColorStr = `rgb(${lightRGB.join(',')})`;
+            const surfaceColorStr = `rgb(${surfaceRGB.join(',')})`;
+            const refColorStr = `rgb(${refR}, ${refG}, ${refB})`;
+
+            // Determinar o nome da cor refletida
+            let refName = "Preta (Luz totalmente absorvida)";
+            if (refR === 255 && refG === 255 && refB === 255) refName = "Branca";
+            else if (refR === 255 && refG === 0 && refB === 0) refName = "Vermelha";
+            else if (refR === 0 && refG === 255 && refB === 0) refName = "Verde";
+            else if (refR === 0 && refG === 0 && refB === 255) refName = "Azul";
+            else if (refR === 255 && refG === 255 && refB === 0) refName = "Amarela";
+            else if (refR === 0 && refG === 255 && refB === 255) refName = "Ciano";
+            else if (refR === 255 && refG === 0 && refB === 255) refName = "Magenta";
+
+            // Atualizar o texto de explicação
+            if (refName.includes("Preta")) {
+                resultDiv.innerHTML = `A superfície <span class="highlight">${surfaceName}</span> não reflete os comprimentos de onda da luz <span class="highlight">${lightName}</span>. Portanto, <b>nenhuma luz é refletida</b> (fica escuro).`;
+                resultDiv.style.borderLeftColor = "#f72585"; // Vermelho para absorção
+            } else {
+                resultDiv.innerHTML = `Luz <span class="highlight">${lightName}</span> atinge a superfície <span class="highlight">${surfaceName}</span>.<br>A luz que sobrevive à absorção e é refletida aos seus olhos é a <b>${refName}</b>.`;
+                resultDiv.style.borderLeftColor = "#4cc9f0"; // Azul para sucesso
+            }
+
+            // --- DESENHO NO CANVAS ---
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Desenhar a Superfície (Chão)
+            ctx.fillStyle = surfaceColorStr;
+            ctx.fillRect(100, 320, 400, 30);
+            // Borda para a superfície para dar relevo, principalmente se for preta
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(100, 320, 400, 30);
+
+            // 2. Desenhar Feixe de Luz Incidente
+            ctx.beginPath();
+            ctx.moveTo(140, 60);
+            ctx.lineTo(260, 60);
+            ctx.lineTo(320, 320);
+            ctx.lineTo(280, 320);
+            ctx.closePath();
+
+            ctx.fillStyle = lightColorStr;
+            // Efeito de brilho
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = lightColorStr;
+            ctx.globalAlpha = 0.8;
+            ctx.fill();
+            ctx.shadowBlur = 0; // reset
+
+            // Desenhar a "Lanterna/Laser" emissor
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(120, 40, 60, 40); // corpo
+            ctx.fillStyle = lightColorStr;
+            ctx.fillRect(180, 45, 10, 30); // Lente brilhando
+
+            // 3. Desenhar Feixe de Luz Refletido (Só aparece se não for preto)
+            if (refR > 0 || refG > 0 || refB > 0) {
+                ctx.beginPath();
+                ctx.moveTo(320, 320);
+                ctx.lineTo(280, 320);
+                ctx.lineTo(460, 60);
+                ctx.lineTo(500, 60);
+                ctx.closePath();
+
+                ctx.fillStyle = refColorStr;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = refColorStr;
+                // Deixa o feixe ligeiramente transparente se for uma cor misturada fraca
+                ctx.globalAlpha = Math.max(0.6, (refR + refG + refB) / (255 * 3));
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1.0;
+            } else {
+                // Desenhar indicador de absorção (calor) se nada refletir
+                ctx.fillStyle = '#f72585';
+                ctx.font = '14px Arial';
+                ctx.fillText("Energia absorvida", 290, 365);
+                ctx.fillText("(Transformada em calor)", 270, 380);
+            }
+
+            // Textos no Canvas
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.fillText("Luz Incidente", 100, 30);
+            ctx.fillText("Superfície", 110, 310);
+            if (refR > 0 || refG > 0 || refB > 0) {
+                ctx.fillText("Luz Refletida", 410, 30);
+            }
+        }
+
+        // Adicionar eventos para rodar a simulação ao trocar o select
+        lightSelect.addEventListener('change', updateSimulation);
+        surfaceSelect.addEventListener('change', updateSimulation);
+
+        // Iniciar com os valores padrão (Luz Azul na Superfície Amarela = Escuridão)
+        updateSimulation();
+    </script>
+</body>
+
+</html>

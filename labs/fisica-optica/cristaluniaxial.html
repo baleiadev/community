@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Cristal Uniaxial e Polarização</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: #18181b;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .canvas-container {
+            background-color: #27272a;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        canvas {
+            background-color: #1e1e24;
+            border-radius: 50%;
+            /* Faz o fundo parecer uma lente/feixe */
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #e0e7ff;
+        }
+
+        p.desc {
+            font-size: 0.85rem;
+            color: #a1a1aa;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .control-group {
+            background: #27272a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3f3f46;
+        }
+
+        .control-group.incident {
+            border-left-color: #facc15;
+        }
+
+        .control-group.phase {
+            border-left-color: #c084fc;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #3f3f46;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .legend {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            background: #1e1e24;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #d4d4d8;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+
+        .state-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 12px;
+            background: #3730a3;
+            color: white;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-align: center;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="simCanvas" width="400" height="400"></canvas>
+        </div>
+
+        <div class="controls">
+            <div>
+                <h2>Decomposição e Recombinação</h2>
+                <p class="desc">Visão transversal do feixe de luz. Ajuste o ângulo da luz incidente e a defasagem
+                    causada pela diferença entre n<sub>e</sub> e n<sub>o</sub>.</p>
+            </div>
+
+            <div class="control-group incident">
+                <div class="label-row">
+                    <span>Ângulo da Luz Incidente (θ)</span>
+                    <span id="angleVal">45°</span>
+                </div>
+                <input type="range" id="angleSlider" min="0" max="90" value="45">
+            </div>
+
+            <div class="control-group phase">
+                <div class="label-row">
+                    <span>Atraso de Fase / Defasagem (Δφ)</span>
+                    <span id="phaseVal">90°</span>
+                </div>
+                <input type="range" id="phaseSlider" min="0" max="360" value="90">
+                <p style="font-size: 0.75rem; color: #9ca3af; margin-top: 8px;">Ex: 90° = Lâmina de Quarto de Onda
+                    (λ/4)<br>Ex: 180° = Lâmina de Meia Onda (λ/2)</p>
+            </div>
+
+            <div id="polarizationState" class="state-badge">Polarização Circular</div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3b82f6;"></div>
+                    Eixo Óptico / Extraordinário (Y)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #10b981;"></div>
+                    Eixo Ordinário (X)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #facc15;"></div>
+                    Vetor Resultante (Recombinado)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const angleSlider = document.getElementById('angleSlider');
+        const phaseSlider = document.getElementById('phaseSlider');
+        const angleVal = document.getElementById('angleVal');
+        const phaseVal = document.getElementById('phaseVal');
+        const polState = document.getElementById('polarizationState');
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const A = 150; // Amplitude máxima do feixe
+        let time = 0;
+
+        function drawArrow(fromX, fromY, toX, toY, color, width = 2) {
+            const headlen = 10;
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const angle = Math.atan2(dy, dx);
+
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.stroke();
+        }
+
+        function determineState(angle, phase) {
+            if (angle === 0 || angle === 90) return "Polarização Linear (Mantida)";
+
+            const p = phase % 360;
+            if (p === 0 || p === 360) return "Polarização Linear";
+            if (p === 180) return "Polarização Linear (Rotacionada)";
+
+            if ((p === 90 || p === 270) && angle === 45) {
+                return p === 90 ? "Polarização Circular Direita" : "Polarização Circular Esquerda";
+            }
+
+            return "Polarização Elíptica";
+        }
+
+        function render() {
+            const thetaDeg = parseFloat(angleSlider.value);
+            const phaseDeg = parseFloat(phaseSlider.value);
+
+            // No canvas o Y cresce para baixo, então usamos -theta para ficar intuitivo
+            const thetaRad = -thetaDeg * (Math.PI / 180);
+            const phaseRad = phaseDeg * (Math.PI / 180);
+
+            angleVal.textContent = thetaDeg + '°';
+            phaseVal.textContent = phaseDeg + '°';
+            polState.textContent = determineState(thetaDeg, phaseDeg);
+
+            // Amplitudes nos eixos (Decomposição)
+            // Optic Axis (Y-axis) é o Extraordinário
+            const Ae = A * Math.cos(thetaRad); // Projeção em Y (Eixo Óptico)
+            const Ao = A * Math.sin(thetaRad); // Projeção em X (Eixo Ordinário)
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Desenhar Eixos do Cristal
+            ctx.beginPath();
+            ctx.strokeStyle = '#3f3f46';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); // Ordinário (X)
+            ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height); // Extraordinário (Y)
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Textos dos Eixos
+            ctx.fillStyle = '#3b82f6';
+            ctx.font = '12px Inter';
+            ctx.fillText('Eixo Óptico (ne)', cx + 10, 20);
+            ctx.fillStyle = '#10b981';
+            ctx.fillText('Eixo Ordinário (no)', canvas.width - 110, cy - 10);
+
+            // 2. Desenhar a Trajetória de Recombinação (Figura de Lissajous / Elipse)
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(250, 204, 21, 0.3)'; // Amarelo translúcido
+            ctx.lineWidth = 2;
+            for (let t = 0; t <= Math.PI * 2; t += 0.05) {
+                let x = cx + Ao * Math.cos(t);
+                // Adicionamos a defasagem (phaseRad) no eixo Extraordinário
+                let y = cy + Ae * Math.cos(t + phaseRad);
+                if (t === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+
+            // 3. Animação em Tempo Real da Onda Oscilando
+            // Componentes Instantâneas
+            const currentX = Ao * Math.cos(time);
+            const currentY = Ae * Math.cos(time + phaseRad);
+
+            // Vetor Ordinário (Verde - Eixo X)
+            if (Math.abs(currentX) > 1) {
+                drawArrow(cx, cy, cx + currentX, cy, '#10b981', 3);
+            }
+
+            // Vetor Extraordinário (Azul - Eixo Y)
+            if (Math.abs(currentY) > 1) {
+                drawArrow(cx, cy, cx, cy + currentY, '#3b82f6', 3);
+            }
+
+            // Vetor Resultante Recombinado (Amarelo)
+            drawArrow(cx, cy, cx + currentX, cy + currentY, '#facc15', 3);
+
+            // Ponto brilhante na ponta do vetor resultante
+            ctx.beginPath();
+            ctx.arc(cx + currentX, cy + currentY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#facc15';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            time += 0.05;
+            requestAnimationFrame(render);
+        }
+
+        render();
+    </script>
+
+</body>
+
+</html>

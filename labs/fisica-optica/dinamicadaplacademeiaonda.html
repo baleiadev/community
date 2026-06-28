@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Placa de Meia Onda</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            /* Slate 900 */
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 1000px;
+            background-color: #1e293b;
+            /* Slate 800 */
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 15px;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #38bdf8;
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+
+        /* Grid dos Displays Visuais */
+        .visual-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+
+        @media (max-width: 800px) {
+            .visual-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .display-panel {
+            background-color: #0f172a;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #334155;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .display-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Controles */
+        .controls-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+
+        @media (max-width: 600px) {
+            .controls-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .value-badge {
+            background: #38bdf8;
+            color: #0f172a;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: #475569;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #38bdf8;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+
+        .explanation {
+            grid-column: 1 / -1;
+            background: rgba(56, 189, 248, 0.1);
+            border-left: 4px solid #38bdf8;
+            padding: 12px 15px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-right: 15px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot.cyan {
+            background: #22d3ee;
+        }
+
+        .dot.pink {
+            background: #f472b6;
+        }
+
+        .dot.yellow {
+            background: #fde047;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard">
+        <div class="header">
+            <h2>Dinâmica da Placa de Meia Onda</h2>
+            <p class="subtitle">Análise transversal e longitudinal da propagação da luz em um cristal birrefringente</p>
+        </div>
+
+        <div class="visual-grid">
+            <div class="display-panel">
+                <div class="display-title">Entrada (Z = 0)</div>
+                <canvas id="canvasInput" width="200" height="200"></canvas>
+            </div>
+
+            <div class="display-panel">
+                <div class="display-title">Interior do Cristal (Defasagem)</div>
+                <canvas id="canvasCrystal" width="400" height="200"></canvas>
+                <div style="margin-top: 10px;">
+                    <div class="legend-item">
+                        <div class="dot cyan"></div> Eixo Ordinário (Rápido)
+                    </div>
+                    <div class="legend-item">
+                        <div class="dot pink"></div> Eixo Extraordinário (Lento)
+                    </div>
+                </div>
+            </div>
+
+            <div class="display-panel">
+                <div class="display-title">Saída (Z = Espessura)</div>
+                <canvas id="canvasOutput" width="200" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="control-group">
+                <div class="label-row">
+                    <span>Ângulo de Polarização de Entrada (θ)</span>
+                    <span class="value-badge" id="angleVal">45°</span>
+                </div>
+                <input type="range" id="angleSlider" min="0" max="90" value="45">
+            </div>
+
+            <div class="control-group">
+                <div class="label-row">
+                    <span>Espessura / Atraso de Fase Total (Δφ)</span>
+                    <span class="value-badge" id="phaseVal">180°</span>
+                </div>
+                <input type="range" id="phaseSlider" min="0" max="360" value="180">
+            </div>
+
+            <div class="explanation" id="explanationText">
+                Com uma entrada a 45° e um atraso de 180° (Placa de Meia Onda), a polarização de saída é perfeitamente
+                rotacionada em 90°.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Referências dos elementos
+        const canvasIn = document.getElementById('canvasInput');
+        const ctxIn = canvasIn.getContext('2d');
+
+        const canvasCrys = document.getElementById('canvasCrystal');
+        const ctxCrys = canvasCrys.getContext('2d');
+
+        const canvasOut = document.getElementById('canvasOutput');
+        const ctxOut = canvasOut.getContext('2d');
+
+        const angleSlider = document.getElementById('angleSlider');
+        const phaseSlider = document.getElementById('phaseSlider');
+        const angleVal = document.getElementById('angleVal');
+        const phaseVal = document.getElementById('phaseVal');
+        const explanationText = document.getElementById('explanationText');
+
+        let time = 0;
+        const amplitude = 70; // Amplitude base para desenho
+
+        // Função auxiliar para desenhar o grid em cruz
+        function drawGrid(ctx, w, h) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1;
+            ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+            ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
+            ctx.stroke();
+        }
+
+        // Função para gerar o texto explicativo dinâmico
+        function updateExplanation(angle, phase) {
+            let text = "";
+            if (phase === 180) {
+                text = `Com um atraso de 180° (λ/2), a placa atua como Meia Onda. `;
+                if (angle === 45) text += `A polarização de 45° é rotacionada em exatos 90°, saindo a -45°.`;
+                else if (angle === 0 || angle === 90) text += `Como a luz entra paralela a um dos eixos principais, nenhuma rotação ocorre.`;
+                else text += `A polarização linear sofre uma rotação espelhada em relação ao eixo principal.`;
+            } else if (phase === 90 || phase === 270) {
+                text = `Com um atraso de ${phase}° (λ/4), a placa atua como Quarto de Onda. `;
+                if (angle === 45) text += `Isso transforma a polarização linear de 45° em Polarização Circular.`;
+                else if (angle === 0 || angle === 90) text += `Nenhum efeito visual, pois a luz viaja inteiramente em um único eixo.`;
+                else text += `O resultado é uma Polarização Elíptica.`;
+            } else if (phase === 0 || phase === 360) {
+                text = `Atraso de ${phase}°. A onda sai com a mesma polarização que entrou (onda completa).`;
+            } else {
+                text = `Atraso genérico de fase. Os feixes se recombinam formando uma Polarização Elíptica.`;
+            }
+            explanationText.textContent = text;
+        }
+
+        function render() {
+            const angleDeg = parseFloat(angleSlider.value);
+            const phaseDeg = parseFloat(phaseSlider.value);
+
+            angleVal.textContent = angleDeg + '°';
+            phaseVal.textContent = phaseDeg + '°';
+
+            const theta = -angleDeg * (Math.PI / 180); // Negativo por conta da coordenada Y do canvas
+            const totalPhase = phaseDeg * (Math.PI / 180);
+
+            // Atualiza a explicação a cada 10 frames para evitar lag no slider, ou diretamente
+            updateExplanation(angleDeg, phaseDeg);
+
+            // Amplitudes dos eixos Ordinário (X - Ciano) e Extraordinário (Y - Rosa)
+            const Ao = amplitude * Math.cos(theta);
+            const Ae = amplitude * Math.sin(theta);
+
+            // --- 1. RENDERIZAR ENTRADA ---
+            ctxIn.clearRect(0, 0, canvasIn.width, canvasIn.height);
+            drawGrid(ctxIn, canvasIn.width, canvasIn.height);
+            const cxIn = canvasIn.width / 2, cyIn = canvasIn.height / 2;
+
+            // Rastro do vetor de entrada (Linha)
+            ctxIn.beginPath();
+            ctxIn.strokeStyle = 'rgba(253, 224, 71, 0.3)';
+            ctxIn.lineWidth = 2;
+            ctxIn.moveTo(cxIn - Ao, cyIn - Ae);
+            ctxIn.lineTo(cxIn + Ao, cyIn + Ae);
+            ctxIn.stroke();
+
+            // Vetor Oscilante
+            const oscIn = Math.sin(time);
+            const currXin = Ao * oscIn;
+            const currYin = Ae * oscIn;
+            ctxIn.beginPath();
+            ctxIn.strokeStyle = '#fde047'; // Amarelo
+            ctxIn.lineWidth = 3;
+            ctxIn.moveTo(cxIn, cyIn);
+            ctxIn.lineTo(cxIn + currXin, cyIn + currYin);
+            ctxIn.stroke();
+            ctxIn.beginPath();
+            ctxIn.arc(cxIn + currXin, cyIn + currYin, 4, 0, Math.PI * 2);
+            ctxIn.fillStyle = '#fff'; ctxIn.fill();
+
+            // --- 2. RENDERIZAR PROPAGAÇÃO NO CRISTAL ---
+            ctxCrys.clearRect(0, 0, canvasCrys.width, canvasCrys.height);
+            const wCrys = canvasCrys.width;
+            const hCrys = canvasCrys.height;
+            const cyCrys = hCrys / 2;
+
+            // Linha central (Eixo Z)
+            ctxCrys.beginPath();
+            ctxCrys.strokeStyle = '#334155';
+            ctxCrys.moveTo(0, cyCrys); ctxCrys.lineTo(wCrys, cyCrys);
+            ctxCrys.stroke();
+
+            ctxCrys.lineWidth = 2;
+            const numPoints = 200;
+
+            // Desenhar Onda Ordinária (O-Wave - Ciano)
+            ctxCrys.beginPath();
+            ctxCrys.strokeStyle = '#22d3ee';
+            for (let i = 0; i <= numPoints; i++) {
+                const z = (i / numPoints) * wCrys;
+                // Número de onda ajustado para mostrar algumas oscilações
+                const spatialFreq = (z / wCrys) * Math.PI * 4;
+                const y = Ao * Math.sin(spatialFreq - time);
+                if (i === 0) ctxCrys.moveTo(z, cyCrys - y);
+                else ctxCrys.lineTo(z, cyCrys - y);
+            }
+            ctxCrys.stroke();
+
+            // Desenhar Onda Extraordinária (E-Wave - Rosa)
+            // A defasagem aumenta linearmente de 0 até totalPhase ao longo de Z
+            ctxCrys.beginPath();
+            ctxCrys.strokeStyle = '#f472b6';
+            for (let i = 0; i <= numPoints; i++) {
+                const z = (i / numPoints) * wCrys;
+                const spatialFreq = (z / wCrys) * Math.PI * 4;
+                const currentPhaseDelay = (z / wCrys) * totalPhase;
+                // Subtraímos a fase para simular que ela está "ficando para trás"
+                const y = Ae * Math.sin(spatialFreq - time - currentPhaseDelay);
+                if (i === 0) ctxCrys.moveTo(z, cyCrys - y);
+                else ctxCrys.lineTo(z, cyCrys - y);
+            }
+            ctxCrys.stroke();
+
+            // --- 3. RENDERIZAR SAÍDA ---
+            ctxOut.clearRect(0, 0, canvasOut.width, canvasOut.height);
+            drawGrid(ctxOut, canvasOut.width, canvasOut.height);
+            const cxOut = canvasOut.width / 2, cyOut = canvasOut.height / 2;
+
+            // Rastro da figura de Lissajous (Recombinação Total)
+            ctxOut.beginPath();
+            ctxOut.strokeStyle = 'rgba(253, 224, 71, 0.3)';
+            ctxOut.lineWidth = 2;
+            for (let t = 0; t <= Math.PI * 2; t += 0.05) {
+                let x = cxOut + Ao * Math.sin(t);
+                // Aqui a defasagem total é aplicada
+                let y = cyOut + Ae * Math.sin(t - totalPhase);
+                if (t === 0) ctxOut.moveTo(x, y);
+                else ctxOut.lineTo(x, y);
+            }
+            ctxOut.closePath();
+            ctxOut.stroke();
+
+            // Vetor Oscilante Recombinado
+            // Avalia o estado exato no final do cristal (z = wCrys -> spatialFreq = PI*4)
+            const finalFreq = Math.PI * 4;
+            const currXout = Ao * Math.sin(finalFreq - time);
+            const currYout = Ae * Math.sin(finalFreq - time - totalPhase);
+
+            ctxOut.beginPath();
+            ctxOut.strokeStyle = '#fde047';
+            ctxOut.lineWidth = 3;
+            ctxOut.moveTo(cxOut, cyOut);
+            ctxOut.lineTo(cxOut + currXout, cyOut + currYout);
+            ctxOut.stroke();
+            ctxOut.beginPath();
+            ctxOut.arc(cxOut + currXout, cyOut + currYout, 4, 0, Math.PI * 2);
+            ctxOut.fillStyle = '#fff'; ctxOut.fill();
+
+            time += 0.05;
+            requestAnimationFrame(render);
+        }
+
+        render();
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Interferência em Filmes Finos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0f19;
+            color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            color: #4cc9f0;
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            color: #8a99ad;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            background-color: #161c2a;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #232d42;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            max-width: 900px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        canvas {
+            background-color: #070a12;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 350px;
+            background: #0d121f;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        label span {
+            color: #4cc9f0;
+            font-family: monospace;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #2e394e;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4cc9f0;
+            cursor: pointer;
+        }
+
+        select {
+            padding: 8px;
+            background: #2e394e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .consequence-box {
+            width: 100%;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .consequence-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffb703;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        #colorResult {
+            height: 60px;
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+            font-size: 18px;
+            transition: background-color 0.1s;
+        }
+
+        .math-note {
+            font-size: 12px;
+            color: #64748b;
+            background: #070a12;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border-left: 3px solid #64748b;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Interferência em Filmes Finos</h2>
+    <p class="subtitle">Como a espessura transforma a luz branca em cores iridescentes.</p>
+
+    <div class="container">
+        <div class="panel">
+            <canvas id="rayCanvas" width="450" height="300"></canvas>
+
+            <div class="consequence-box">
+                <div class="consequence-title">Consequência Visível (Espectro por Espessura)</div>
+                <canvas id="spectrumCanvas" width="450" height="60"></canvas>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Espessura do Filme (t) <span id="t-val">400 nm</span></label>
+                <input type="range" id="thickness" min="0" max="1000" value="400" step="5">
+            </div>
+
+            <div class="control-group">
+                <label>Índice de Refração do Filme (n) <span id="n-val">1.33</span></label>
+                <input type="range" id="refractiveIndex" min="1.1" max="2.0" value="1.33" step="0.01">
+            </div>
+
+            <div class="control-group">
+                <label>Substrato (Afeta o salto de fase em r2):</label>
+                <select id="substrate">
+                    <option value="high">Maior que o filme (Ex: Vidro, Asfalto) - Gera salto de fase</option>
+                    <option value="low">Menor que o filme (Ex: Ar) - Sem salto de fase</option>
+                </select>
+            </div>
+
+            <div class="control-group" style="margin-top: 15px;">
+                <label>Cor resultante nesta espessura:</label>
+                <div id="colorResult">Cor Refletida</div>
+            </div>
+
+            <div class="math-note">
+                <b>OPD &approx; 2nt</b><br>
+                A luz branca bate no filme. A cor que você vê é aquela cujo comprimento de onda sofre interferência
+                <b>construtiva</b> para essa espessura específica. Cores em interferência destrutiva são apagadas.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rayCtx = document.getElementById('rayCanvas').getContext('2d');
+        const specCtx = document.getElementById('spectrumCanvas').getContext('2d');
+
+        const tSlider = document.getElementById('thickness');
+        const nSlider = document.getElementById('refractiveIndex');
+        const subSelect = document.getElementById('substrate');
+
+        const tVal = document.getElementById('t-val');
+        const nVal = document.getElementById('n-val');
+        const colorResult = document.getElementById('colorResult');
+
+        // Função para calcular a intensidade de um comprimento de onda (lambda em nm)
+        // Baseado na fórmula de interferência: I = I0 * cos^2(Delta_phi / 2)
+        function calculateIntensity(lambda, t, n, subType) {
+            // Diferença de caminho ótico
+            let opd = 2 * n * t;
+
+            // Saltos de fase (Phase Shifts)
+            // r1 (Ar -> Filme) sempre tem salto de pi (assumindo n_filme > 1)
+            // r2 (Filme -> Substrato) tem salto se n_substrato > n_filme
+            let phaseShift1 = Math.PI;
+            let phaseShift2 = (subType === 'high') ? Math.PI : 0;
+
+            let phaseDifference = (2 * Math.PI / lambda) * opd + (phaseShift1 - phaseShift2);
+
+            // Intensidade normalizada (0 a 1)
+            let intensity = Math.pow(Math.cos(phaseDifference / 2), 2);
+            return intensity;
+        }
+
+        // Converte a mistura espectral para RGB
+        function getRGBForThickness(t, n, subType) {
+            // Amostragem de três comprimentos de onda principais para simular a visão humana da luz branca
+            let rInt = calculateIntensity(650, t, n, subType); // Vermelho
+            let gInt = calculateIntensity(532, t, n, subType); // Verde
+            let bInt = calculateIntensity(450, t, n, subType); // Azul
+
+            // Fatores de balanço para simular cor natural
+            return [
+                Math.min(255, Math.round(rInt * 255 * 1.2)),
+                Math.min(255, Math.round(gInt * 255 * 1.0)),
+                Math.min(255, Math.round(bInt * 255 * 1.5))
+            ];
+        }
+
+        function drawSpectrumCanvas(n, subType) {
+            let width = specCtx.canvas.width;
+            let height = specCtx.canvas.height;
+            let imgData = specCtx.createImageData(width, height);
+
+            // Mapeia o pixel X (0 a 450) para a espessura T (0 a 1000nm)
+            for (let x = 0; x < width; x++) {
+                let currentT = (x / width) * 1000;
+                let rgb = getRGBForThickness(currentT, n, subType);
+
+                for (let y = 0; y < height; y++) {
+                    let index = (y * width + x) * 4;
+                    imgData.data[index] = rgb[0];     // R
+                    imgData.data[index + 1] = rgb[1]; // G
+                    imgData.data[index + 2] = rgb[2]; // B
+                    imgData.data[index + 3] = 255;    // Alpha
+                }
+            }
+            specCtx.putImageData(imgData, 0, 0);
+        }
+
+        function drawRayDiagram(t, n, subType, currentRGB) {
+            let w = rayCtx.canvas.width;
+            let h = rayCtx.canvas.height;
+            rayCtx.clearRect(0, 0, w, h);
+
+            let filmTop = 100;
+            // Mapeia t (0-1000) visualmente para a espessura do canvas (5 a 120 pixels)
+            let visualThickness = 5 + (t / 1000) * 115;
+            let filmBottom = filmTop + visualThickness;
+
+            // 1. Desenhar os Meios (Ar, Filme, Substrato)
+            // Ar
+            rayCtx.fillStyle = '#0b0f19'; rayCtx.fillRect(0, 0, w, filmTop);
+            rayCtx.fillStyle = '#cbd5e1'; rayCtx.font = '12px sans-serif'; rayCtx.fillText("AR (n ≈ 1.0)", 10, 20);
+
+            // Filme Fino
+            rayCtx.fillStyle = 'rgba(76, 201, 240, 0.2)'; rayCtx.fillRect(0, filmTop, w, visualThickness);
+            rayCtx.strokeStyle = '#4cc9f0'; rayCtx.beginPath(); rayCtx.moveTo(0, filmTop); rayCtx.lineTo(w, filmTop); rayCtx.stroke();
+            rayCtx.beginPath(); rayCtx.moveTo(0, filmBottom); rayCtx.lineTo(w, filmBottom); rayCtx.stroke();
+            rayCtx.fillStyle = '#4cc9f0'; rayCtx.fillText(`FILME FINO (t = ${t}nm, n = ${n})`, 10, filmTop + 15);
+
+            // Substrato
+            rayCtx.fillStyle = subType === 'high' ? '#1e293b' : '#070a12';
+            rayCtx.fillRect(0, filmBottom, w, h - filmBottom);
+            rayCtx.fillStyle = '#64748b'; rayCtx.fillText("SUBSTRATO", 10, filmBottom + 15);
+
+            // 2. Desenhar os Raios de Luz
+            let incX = 50, incY = 20; // Ponto inicial da luz incidente
+            let hit1X = 180, hit1Y = filmTop; // Onde bate no topo
+            let hit2X = 220, hit2Y = filmBottom; // Onde bate no fundo
+            let out1X = 310, out1Y = 20; // Reflexão r1
+            let out2X = 350, out2Y = 20; // Reflexão r2 saindo do filme
+
+            rayCtx.lineWidth = 2;
+
+            // Luz Incidente (Branca)
+            rayCtx.strokeStyle = '#ffffff';
+            rayCtx.beginPath(); rayCtx.moveTo(incX, incY); rayCtx.lineTo(hit1X, hit1Y); rayCtx.stroke();
+            rayCtx.fillText("Luz Incidente", incX, incY - 5);
+
+            // r1 (Reflexão topo) - Colorido baseado no resultado
+            let resultColor = `rgb(${currentRGB[0]}, ${currentRGB[1]}, ${currentRGB[2]})`;
+            rayCtx.strokeStyle = resultColor;
+            rayCtx.beginPath(); rayCtx.moveTo(hit1X, hit1Y); rayCtx.lineTo(out1X, out1Y); rayCtx.stroke();
+            rayCtx.fillStyle = resultColor; rayCtx.fillText("r1", out1X + 5, out1Y + 10);
+
+            // Luz Refratada dentro do filme
+            rayCtx.strokeStyle = 'rgba(255,255,255,0.5)';
+            rayCtx.beginPath(); rayCtx.moveTo(hit1X, hit1Y); rayCtx.lineTo(hit2X, hit2Y); rayCtx.stroke();
+
+            // r2 (Reflexão fundo -> topo -> fora)
+            rayCtx.beginPath(); rayCtx.moveTo(hit2X, hit2Y); rayCtx.lineTo(hit1X + 80, filmTop); rayCtx.stroke(); // volta no filme
+            rayCtx.strokeStyle = resultColor;
+            rayCtx.beginPath(); rayCtx.moveTo(hit1X + 80, filmTop); rayCtx.lineTo(out2X, out2Y); rayCtx.stroke(); // sai do filme
+            rayCtx.fillText("r2", out2X + 5, out2Y + 10);
+
+            // Onda de interferência ilustrativa
+            rayCtx.strokeStyle = '#ffb703';
+            rayCtx.setLineDash([2, 4]);
+            rayCtx.beginPath(); rayCtx.moveTo(out1X, out1Y + 10); rayCtx.lineTo(out2X, out2Y + 10); rayCtx.stroke();
+            rayCtx.setLineDash([]);
+            rayCtx.fillStyle = '#ffb703'; rayCtx.fillText("Interferem!", out2X + 15, out2Y + 20);
+        }
+
+        function updateAll() {
+            let t = parseInt(tSlider.value);
+            let n = parseFloat(nSlider.value);
+            let subType = subSelect.value;
+
+            tVal.innerText = t + " nm";
+            nVal.innerText = n.toFixed(2);
+
+            // Calcular a cor exata para a espessura atual
+            let rgb = getRGBForThickness(t, n, subType);
+
+            // Atualizar o bloco de cor resultante
+            colorResult.style.backgroundColor = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+
+            // Ajustar cor da fonte do bloco para contraste
+            let luma = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]; // Luminância aparente
+            colorResult.style.color = luma < 128 ? 'white' : 'black';
+
+            // Redesenhar diagramas
+            drawRayDiagram(t, n, subType, rgb);
+            drawSpectrumCanvas(n, subType);
+
+            // Desenhar um marcador no espectro indicando onde estamos
+            let markerX = (t / 1000) * specCtx.canvas.width;
+            specCtx.fillStyle = 'white';
+            specCtx.fillRect(markerX - 1, 0, 2, specCtx.canvas.height);
+            specCtx.beginPath();
+            specCtx.moveTo(markerX - 5, 0); specCtx.lineTo(markerX + 5, 0); specCtx.lineTo(markerX, 5); specCtx.fill();
+            specCtx.beginPath();
+            specCtx.moveTo(markerX - 5, specCtx.canvas.height); specCtx.lineTo(markerX + 5, specCtx.canvas.height); specCtx.lineTo(markerX, specCtx.canvas.height - 5); specCtx.fill();
+        }
+
+        // Listeners
+        tSlider.addEventListener('input', updateAll);
+        nSlider.addEventListener('input', updateAll);
+        subSelect.addEventListener('change', updateAll);
+
+        // Init
+        updateAll();
+    </script>
+</body>
+
+</html>

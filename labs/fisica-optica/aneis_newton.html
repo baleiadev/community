@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Anéis de Newton</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0f19;
+            color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            color: #4cc9f0;
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            color: #8a99ad;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            background-color: #161c2a;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #232d42;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            max-width: 900px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            background: #0d121f;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #4cc9f0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        canvas {
+            background-color: #000;
+            border-radius: 4px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        label span {
+            color: #ffb703;
+            font-family: monospace;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #2e394e;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4cc9f0;
+            cursor: pointer;
+        }
+
+        .explanation {
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.5;
+            text-align: justify;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>A Beleza dos Anéis de Newton</h2>
+    <p class="subtitle">A curvatura polida de uma lente plana-convexa criando um mapa topográfico de interferência
+        luminosa.</p>
+
+    <div class="container">
+
+        <div class="panel">
+            <div class="panel-title">Vista Lateral (Corte)</div>
+            <canvas id="sideCanvas" width="350" height="200"></canvas>
+            <div class="explanation">
+                A espessura do ar <b>t(r)</b> aumenta quadraticamente a partir do centro. O raio que reflete no vidro
+                inferior sofre uma inversão de fase, tornando o ponto de contato sempre escuro.
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">Vista Superior (Interferência)</div>
+            <canvas id="topCanvas" width="300" height="300"></canvas>
+            <div class="explanation">
+                As franjas ficam mais juntas nas bordas porque a lente se afasta do vidro plano mais rapidamente quanto
+                mais longe do centro.
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Comprimento de Onda da Luz (Cor) <span id="wl-val">589 nm (Sódio)</span></label>
+                <input type="range" id="wavelength" min="400" max="700" value="589">
+            </div>
+
+            <div class="control-group">
+                <label>Raio de Curvatura da Lente (Polimento) <span id="r-val">100 cm</span></label>
+                <input type="range" id="lensRadius" min="20" max="300" value="100">
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const sideCtx = document.getElementById('sideCanvas').getContext('2d');
+        const topCtx = document.getElementById('topCanvas').getContext('2d');
+
+        const wlSlider = document.getElementById('wavelength');
+        const rSlider = document.getElementById('lensRadius');
+        const wlVal = document.getElementById('wl-val');
+        const rVal = document.getElementById('r-val');
+
+        // Conversor de Comprimento de onda para RGB (Simplificado para simulação)
+        function nmToRGB(wl) {
+            let r = 0, g = 0, b = 0;
+            if (wl >= 380 && wl < 440) { r = -(wl - 440) / (440 - 380); b = 1; }
+            else if (wl >= 440 && wl < 490) { g = (wl - 440) / (490 - 440); b = 1; }
+            else if (wl >= 490 && wl < 510) { g = 1; b = -(wl - 510) / (510 - 490); }
+            else if (wl >= 510 && wl < 580) { r = (wl - 510) / (580 - 510); g = 1; }
+            else if (wl >= 580 && wl < 645) { r = 1; g = -(wl - 645) / (645 - 580); }
+            else if (wl >= 645 && wl <= 780) { r = 1; }
+
+            // Fator de intensidade visual
+            let factor = 1;
+            if (wl >= 380 && wl < 420) factor = 0.3 + 0.7 * (wl - 380) / (420 - 380);
+            else if (wl >= 700 && wl <= 780) factor = 0.3 + 0.7 * (780 - wl) / (780 - 700);
+
+            return {
+                r: Math.round(r * 255 * factor),
+                g: Math.round(g * 255 * factor),
+                b: Math.round(b * 255 * factor)
+            };
+        }
+
+        function drawSideView(colorStr) {
+            let w = sideCtx.canvas.width;
+            let h = sideCtx.canvas.height;
+            sideCtx.clearRect(0, 0, w, h);
+
+            let centerX = w / 2;
+            let glassTop = h - 40;
+
+            // 1. Desenhar a Placa de Vidro Plana (Base)
+            sideCtx.fillStyle = 'rgba(148, 163, 184, 0.4)'; // Vidro translucido
+            sideCtx.strokeStyle = '#94a3b8';
+            sideCtx.fillRect(20, glassTop, w - 40, 20);
+            sideCtx.strokeRect(20, glassTop, w - 40, 20);
+
+            // 2. Desenhar a Lente Plana-Convexa
+            let lensRadiusVisual = 400 + (parseInt(rSlider.value) * 2); // Exagero visual para caber na tela
+            let lensBottom = glassTop; // Toca exatamente no meio
+            let lensCenterY = lensBottom - lensRadiusVisual;
+
+            sideCtx.beginPath();
+            // A parte reta (topo da lente)
+            sideCtx.moveTo(40, 40);
+            sideCtx.lineTo(w - 40, 40);
+            // A parte curva (fundo da lente) desenhada com um arco gigante
+            sideCtx.arc(centerX, lensCenterY, lensRadiusVisual, Math.PI - 0.2, Math.PI * 2 + 0.2, true);
+
+            sideCtx.fillStyle = 'rgba(76, 201, 240, 0.2)';
+            sideCtx.fill();
+            sideCtx.strokeStyle = '#4cc9f0';
+            sideCtx.lineWidth = 2;
+            sideCtx.stroke();
+
+            // 3. Desenhar a luz e o efeito do filme de ar
+            sideCtx.fillStyle = colorStr;
+            sideCtx.font = '12px Arial';
+            sideCtx.fillText("Ar: t(r) cresce para os lados", centerX - 70, glassTop - 10);
+
+            // Desenhar um raio ilustrativo batendo
+            sideCtx.strokeStyle = colorStr;
+            sideCtx.setLineDash([5, 5]);
+            sideCtx.beginPath();
+            sideCtx.moveTo(centerX + 60, 10);
+            sideCtx.lineTo(centerX + 60, glassTop - 5);
+            sideCtx.stroke();
+            sideCtx.setLineDash([]);
+        }
+
+        function drawTopView(wl, lensRadiusCm) {
+            let w = topCtx.canvas.width;
+            let h = topCtx.canvas.height;
+            let imgData = topCtx.createImageData(w, h);
+
+            let cx = w / 2;
+            let cy = h / 2;
+            let color = nmToRGB(wl);
+
+            // Escala para mapear os pixels do canvas para milímetros reais
+            let mmPerPixel = 0.05;
+            let lambda_mm = wl * 1e-6; // nanometros para milimetros
+            let R_mm = lensRadiusCm * 10; // centimetros para milimetros
+
+            // Itera pixel por pixel para calcular a interferência exata
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    // Distância r do centro em pixels
+                    let dx = x - cx;
+                    let dy = y - cy;
+                    let r_pixels = Math.sqrt(dx * dx + dy * dy);
+
+                    // Distância r em milímetros físicos
+                    let r_mm = r_pixels * mmPerPixel;
+
+                    // Espessura do filme de ar: t = r^2 / 2R
+                    let t_mm = (r_mm * r_mm) / (2 * R_mm);
+
+                    // Diferença de fase: Phi = (2 * pi / lambda) * 2t + pi
+                    // O +pi vem do salto de fase na reflexão ar->vidro no fundo
+                    let phase = (4 * Math.PI * t_mm / lambda_mm) + Math.PI;
+
+                    // Intensidade resultante: I = 0.5 * (1 + cos(Phi))
+                    // Isso gera os anéis escuros e claros suaves
+                    let intensity = 0.5 * (1 + Math.cos(phase));
+
+                    let pixelIndex = (y * w + x) * 4;
+
+                    // Aplica um pequeno decaimento de luz nas bordas para dar efeito de vinheta/foco
+                    let vignette = Math.max(0, 1 - (r_pixels / (w / 1.8)));
+
+                    imgData.data[pixelIndex] = color.r * intensity * vignette;     // Red
+                    imgData.data[pixelIndex + 1] = color.g * intensity * vignette; // Green
+                    imgData.data[pixelIndex + 2] = color.b * intensity * vignette; // Blue
+                    imgData.data[pixelIndex + 3] = 255;                            // Alpha (opaco)
+                }
+            }
+            topCtx.putImageData(imgData, 0, 0);
+
+            // Adicionar um ponto central brilhante para representar a fonte de luz refletida
+            topCtx.fillStyle = 'rgba(255,255,255,0.5)';
+            topCtx.beginPath();
+            topCtx.arc(cx, cy, 2, 0, Math.PI * 2);
+            topCtx.fill();
+        }
+
+        function render() {
+            let wl = parseInt(wlSlider.value);
+            let lensRadius = parseInt(rSlider.value);
+
+            let colorObj = nmToRGB(wl);
+            let colorStr = `rgb(${colorObj.r}, ${colorObj.g}, ${colorObj.b})`;
+
+            wlVal.innerText = wl + " nm";
+            rVal.innerText = lensRadius + " cm";
+
+            drawSideView(colorStr);
+            drawTopView(wl, lensRadius);
+        }
+
+        // Listeners
+        wlSlider.addEventListener('input', render);
+        rSlider.addEventListener('input', render);
+
+        // Renderização inicial
+        render();
+    </script>
+</body>
+
+</html>

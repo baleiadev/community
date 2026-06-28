@@ -19,6 +19,10 @@ All presentations, code snippets, and hands-on labs from our monthly meetups are
 * [Meetup #1: Cloud Native Fundamentals](./meetups/01-cloud-native-fundamentals) - *Coming Soon*
 * [Meetup #2: Docker from Zero to Production](./meetups/02-docker-from-zero) - *Coming Soon*
 
+## 🔬 Open Source Labs & Projects
+Beyond our meetups, we host standalone educational projects and interactive simulators created by the community.
+* [Physics & Optics Simulators](./labs/fisica-optica) - Interactive HTML/JS labs for studying wave propagation, polarization, and optical communications.
+
 ## 🤝 Code of Conduct
 We are committed to providing a friendly, safe, and welcoming environment for all. Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 

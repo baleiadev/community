@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador: Lei de Malus</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .light-beam {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background-color: #ffd700;
+            margin: 2rem auto;
+            transition: opacity 0.1s ease, box-shadow 0.1s ease;
+            box-shadow: 0 0 50px #ffd700;
+        }
+
+        .controls {
+            margin-top: 2rem;
+        }
+
+        input[type="range"] {
+            width: 80%;
+            margin: 1rem 0;
+        }
+
+        .stats {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Simulação da Lei de Malus</h2>
+        <p>I(θ) = I(0) cos²(θ)</p>
+
+        <div class="light-beam" id="lightBeam"></div>
+
+        <div class="controls">
+            <label for="angleSlider">Ângulo do Analisador (θ): <span id="angleValue">0</span>°</label><br>
+            <input type="range" id="angleSlider" min="0" max="360" value="0">
+        </div>
+
+        <div class="stats">
+            Intensidade Detectada: <span id="intensityValue">100</span>%
+        </div>
+    </div>
+
+    <script>
+        const angleSlider = document.getElementById('angleSlider');
+        const angleValueDisplay = document.getElementById('angleValue');
+        const intensityValueDisplay = document.getElementById('intensityValue');
+        const lightBeam = document.getElementById('lightBeam');
+
+        // Função para calcular e atualizar a interface
+        function updateSimulation() {
+            const angleDeg = parseFloat(angleSlider.value);
+
+            // Converte graus para radianos
+            const angleRad = angleDeg * (Math.PI / 180);
+
+            // Aplica a Lei de Malus: I = I0 * cos^2(theta)
+            // Assumindo I0 = 100%
+            const intensity = 100 * Math.pow(Math.cos(angleRad), 2);
+
+            // Atualiza os textos na tela
+            angleValueDisplay.textContent = angleDeg;
+            intensityValueDisplay.textContent = intensity.toFixed(1);
+
+            // Atualiza a opacidade do círculo para simular a luz
+            // O valor da opacidade vai de 0.0 a 1.0
+            const opacityLevel = intensity / 100;
+            lightBeam.style.opacity = opacityLevel;
+
+            // Reduz o brilho externo conforme a intensidade cai
+            lightBeam.style.boxShadow = `0 0 ${50 * opacityLevel}px rgba(255, 215, 0, ${opacityLevel})`;
+        }
+
+        // Adiciona o ouvinte de evento para o slider
+        angleSlider.addEventListener('input', updateSimulation);
+
+        // Chamada inicial para configurar a tela no primeiro carregamento
+        updateSimulation();
+    </script>
+
+</body>
+
+</html>
