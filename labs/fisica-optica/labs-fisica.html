@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratórios de Física e Óptica - baleia.dev</title>
+    <meta name="description" content="Simuladores interativos de física e óptica criados pela comunidade Baleia.dev.">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        /* Estilos baseados no design do site baleia.dev para manter o padrão visual */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        
+        header { background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        header nav.container { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; }
+        header .logo a { display: flex; align-items: center; text-decoration: none; }
+        header .logo h1 { color: #2c3e50; font-size: 1.6em; margin: 0; font-weight: 800; letter-spacing: -0.5px; }
+        
+        .hero-section { background: linear-gradient(135deg, #1a2a6c 0%, #11998e 100%); color: white; padding: 80px 20px; text-align: center; }
+        .hero-section h2 { font-size: 2.8em; margin-bottom: 20px; }
+        .hero-section p { font-size: 1.2em; max-width: 800px; margin: 0 auto; opacity: 0.9; }
+
+        .labs-section { padding: 60px 0; }
+        .category-title { color: #2c3e50; font-size: 1.8em; margin: 40px 0 20px 0; border-bottom: 2px solid #0db7ed; padding-bottom: 10px; display: flex; align-items: center; }
+        .category-title i { margin-right: 15px; color: #0db7ed; }
+        
+        .labs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .lab-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: transform 0.3s ease, box-shadow 0.3s ease; border-left: 4px solid #3498db; display: flex; flex-direction: column; justify-content: space-between; }
+        .lab-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+        .lab-card h4 { color: #2c3e50; font-size: 1.2em; margin-bottom: 10px; margin-top: 0; }
+        .lab-card p { color: #666; font-size: 0.9em; margin-bottom: 20px; flex-grow: 1; line-height: 1.5; }
+        .lab-card a { display: inline-block; background-color: #34495e; color: #fff; padding: 10px 15px; border-radius: 4px; text-decoration: none; font-size: 0.9em; font-weight: bold; text-align: center; transition: background 0.3s; }
+        .lab-card a:hover { background-color: #0db7ed; }
+
+        footer { background-color: #2c3e50; color: white; padding: 30px 0; text-align: center; margin-top: 40px; }
+        footer p { margin: 0; color: #aaa; }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">
+                <!-- Usando um link simbólico para a home. Como este arquivo pode ficar em outra pasta, ajustaremos depois se necessário -->
+                <a href="#">
+                    <h1 style="color: #2c3e50; font-size: 1.6em; margin: 0; font-weight: 800; letter-spacing: -0.5px;">baleia.dev</h1>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero-section">
+            <div class="container">
+                <h2><i class="fas fa-atom"></i> Laboratórios de Física e Óptica</h2>
+                <p>
+                    Explore nossos simuladores interativos. Visualize os fenômenos de propagação da luz, interferência e polarização diretamente no seu navegador.
+                </p>
+            </div>
+        </section>
+
+        <section class="labs-section">
+            <div class="container">
+                
+                <!-- Categoria 1: Interferência e Difração -->
+                <h3 class="category-title"><i class="fas fa-wave-square"></i> Interferência e Ondas</h3>
+                <div class="labs-grid">
+                    <div class="lab-card">
+                        <h4>Anéis de Newton</h4>
+                        <p>Simulação do padrão de interferência formado pela reflexão da luz entre uma superfície esférica e uma plana.</p>
+                        <a href="aneis_newton.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card">
+                        <h4>Interferômetro de Michelson</h4>
+                        <p>Explore o funcionamento do instrumento fundamental que permitiu medir o comprimento de onda da luz.</p>
+                        <a href="interferometro_michelson.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card">
+                        <h4>Interferômetro de Fabry-Pérot</h4>
+                        <p>Analise a ressonância óptica e a interferência de múltiplos feixes em uma cavidade.</p>
+                        <a href="fabry_perot.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card">
+                        <h4>Interferência em Filme Fino</h4>
+                        <p>Visualize os padrões de iridescência criados pela reflexão em películas finas.</p>
+                        <a href="filme_fino.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card">
+                        <h4>Simulador LIGO</h4>
+                        <p>Conceitos aplicados na detecção de ondas gravitacionais usando interferometria a laser.</p>
+                        <a href="simulador_ligo.html">Abrir Simulação</a>
+                    </div>
+                </div>
+
+                <!-- Categoria 2: Polarização -->
+                <h3 class="category-title"><i class="fas fa-glasses"></i> Polarização da Luz</h3>
+                <div class="labs-grid">
+                    <div class="lab-card" style="border-left-color: #e67e22;">
+                        <h4>Lei de Malus</h4>
+                        <p>Simulador demonstrando a intensidade da luz polarizada ao atravessar um analisador.</p>
+                        <a href="leimalus.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card" style="border-left-color: #e67e22;">
+                        <h4>Malus (Interativo)</h4>
+                        <p>Versão estendida e dinâmica para o estudo da Lei de Malus ($I = I_0 \cos^2 \theta$).</p>
+                        <a href="simulaodrinterativomalus.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card" style="border-left-color: #e67e22;">
+                        <h4>Luz Polarizada</h4>
+                        <p>Visualização vetorial dos estados de polarização das ondas eletromagnéticas.</p>
+                        <a href="luzpolarizada.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card" style="border-left-color: #e67e22;">
+                        <h4>Fotoelasticidade</h4>
+                        <p>Padrões de tensão óptica visíveis através de luz polarizada em materiais birrefringentes.</p>
+                        <a href="fotoelasticidade.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card" style="border-left-color: #e67e22;">
+                        <h4>Cristal de Calcita</h4>
+                        <p>Simulação do fenômeno de dupla refração (birrefringência) em cristais de calcita.</p>
+                        <a href="cristaldecalcita.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card" style="border-left-color: #e67e22;">
+                        <h4>Placa de Meia-Onda</h4>
+                        <p>Como dispositivos retardadores alteram o estado de polarização da luz incidente.</p>
+                        <a href="dinamicadaplacademeiaonda.html">Abrir Simulação</a>
+                    </div>
+                </div>
+
+                <!-- Categoria 3: Refração, Dispersão e Outros -->
+                <h3 class="category-title"><i class="fas fa-rainbow"></i> Refração e Dispersão</h3>
+                <div class="labs-grid">
+                    <div class="lab-card" style="border-left-color: #28a745;">
+                        <h4>Película Antirreflexo</h4>
+                        <p>Física aplicada a lentes: uso de interferência destrutiva para minimizar reflexos.</p>
+                        <a href="antirreflexo.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card" style="border-left-color: #28a745;">
+                        <h4>Dispersão e Índice de Refração</h4>
+                        <p>Como a luz se separa em diferentes cores ao mudar de meio.</p>
+                        <a href="dispersaodoindicaderefricao.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card" style="border-left-color: #28a745;">
+                        <h4>Decomposição e Recombinação</h4>
+                        <p>O experimento clássico do prisma separando e unindo o espectro visível.</p>
+                        <a href="decomposicaoerecombinacao.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card" style="border-left-color: #28a745;">
+                        <h4>Reflexão de Cor</h4>
+                        <p>Simulador interativo sobre como percebemos as cores através da reflexão da luz.</p>
+                        <a href="simuladordereflexaodecor.html">Abrir Simulação</a>
+                    </div>
+                    <div class="lab-card" style="border-left-color: #28a745;">
+                        <h4>Oscilador Anisotrópico</h4>
+                        <p>Modelo físico de oscilações com propriedades dependentes da direção.</p>
+                        <a href="osciladoranisotropico.html">Abrir Simulação</a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>© 2026 baleia.dev. Todos os direitos reservados. Projeto educacional da comunidade.</p>
+        </div>
+    </footer>
+</body>
+</html>
